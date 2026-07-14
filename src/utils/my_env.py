@@ -12,8 +12,12 @@ class MyEnv(metaclass=SingletonMeta):
     """
 
     ENV_PATH: Final = "res/configs/.env"
+    # field name of the url of the service
     LLM_URL_FIELD: Final = "LLM_URL"
+    # field name of the API KEY sent to the service
     LLM_KEY_FIELD: Final = "LLM_KEY"
+    # field name of the model-name (e.g: 'o1-preview') used by the service
+    LLM_MODEL_FIELD: Final = "LLM_MODEL"
 
     def __init__(self):
         self._logger = Logger()
@@ -74,3 +78,10 @@ class MyEnv(metaclass=SingletonMeta):
         :return: The API key of the LLM service, otherwise None.
         """
         return self.get(self.LLM_KEY_FIELD)
+
+    def get_model(self):
+        """
+        Get the model-name of the LLM service.
+        :return: The model-name of the LLM service, otherwise None.
+        """
+        return self.get(self.LLM_MODEL_FIELD)

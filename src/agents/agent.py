@@ -1,6 +1,8 @@
 from abc import abstractmethod, ABC
+from typing import Dict
 
 from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
 
 from src.utils.logger import Logger
@@ -13,7 +15,7 @@ class BaseAgent(ABC):
     a request and act as it was instructed
     """
 
-    def __init__(self, name: str, tools: list):
+    def __init__(self, name: str, tools: Dict[str, BaseTool]):
 
         self._logger: Logger = Logger()
         """logger reference"""

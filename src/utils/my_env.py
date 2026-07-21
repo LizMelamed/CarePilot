@@ -18,6 +18,10 @@ class MyEnv(metaclass=SingletonMeta):
     LLM_KEY_FIELD: Final = "LLM_KEY"
     # field name of the model-name (e.g: 'o1-preview') used by the service
     LLM_MODEL_FIELD: Final = "LLM_MODEL"
+    # field name of the url of the database
+    DB_URL_FIELD: Final = "DB_URL"
+    # field name of the authentication token used to access the database
+    DB_AUTH_TOKEN_FIELD: Final = "DB_AUTH_TOKEN"
 
     def __init__(self):
         self._logger = Logger()
@@ -65,14 +69,14 @@ class MyEnv(metaclass=SingletonMeta):
             return None
         return os.environ[key]
 
-    def get_url(self):
+    def get_llm_url(self):
         """
         Get the URL of the LLM service.
         :return: The URL of the LLM service, otherwise None.
         """
         return self.get(self.LLM_URL_FIELD)
 
-    def get_key(self):
+    def get_llm_key(self):
         """
         Get the API key of the LLM service.
         :return: The API key of the LLM service, otherwise None.
@@ -85,3 +89,16 @@ class MyEnv(metaclass=SingletonMeta):
         :return: The model-name of the LLM service, otherwise None.
         """
         return self.get(self.LLM_MODEL_FIELD)
+
+    def get_db_url(self):
+        """
+        Get the URL of the DB service.
+        :return: The URL of the DB service, otherwise None.
+        """
+        return self.get(self.DB_URL_FIELD)
+    def get_db_token(self):
+        """
+        Get the auth token of the DB service.
+        :return: The auth token of the DB service, otherwise None.
+        """
+        return self.get(self.DB_AUTH_TOKEN_FIELD)

@@ -30,20 +30,20 @@ class BaseAgent(ABC):
         params = {}
 
         self._logger.info("Initializing model...")
-        if env_handler.get_url() is None:
+        if env_handler.get_llm_url() is None:
             raise ValueError("No LLM URL provided.")
-        params["openai_api_base"] = env_handler.get_url()
+        params["openai_api_base"] = env_handler.get_llm_url()
 
         if env_handler.get_model() is None:
             raise ValueError("No model provided.")
         params["model"] = env_handler.get_model()
 
 
-        if env_handler.get_key() is None:
+        if env_handler.get_llm_key() is None:
             self._logger.warning("No key provided, using dummy key instead.")
             key = "d"
         else:
-            key = env_handler.get_key()
+            key = env_handler.get_llm_key()
         params["api_key"] = key
         key = None
 

@@ -1,6 +1,3 @@
-from types import CoroutineType
-from typing import Any
-
 from langchain_openai import OpenAIEmbeddings
 
 from src.utils.logger import Logger

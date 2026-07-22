@@ -23,6 +23,13 @@ class MyEnv(metaclass=SingletonMeta):
     # field name of the authentication token used to access the database
     DB_AUTH_TOKEN_FIELD: Final = "DB_AUTH_TOKEN"
 
+    # field name of the url of the embedder service
+    EMBEDDER_URL_FIELD: Final = "EMBEDDER_URL"
+    # field name of the API KEY sent to the embedder service
+    EMBEDDER_KEY_FIELD: Final = "EMBEDDER_KEY"
+    # field name of the embedder model-name (e.g: 'o1-preview') used by the service
+    EMBEDDER_MODEL_FIELD: Final = "EMBEDDER_MODEL"
+
     def __init__(self):
         self._logger = Logger()
         self._logger.info("Initializing MyEnv...")
@@ -83,7 +90,7 @@ class MyEnv(metaclass=SingletonMeta):
         """
         return self.get(self.LLM_KEY_FIELD)
 
-    def get_model(self):
+    def get_llm_model(self):
         """
         Get the model-name of the LLM service.
         :return: The model-name of the LLM service, otherwise None.
@@ -102,3 +109,24 @@ class MyEnv(metaclass=SingletonMeta):
         :return: The auth token of the DB service, otherwise None.
         """
         return self.get(self.DB_AUTH_TOKEN_FIELD)
+
+    def get_embedder_url(self):
+        """
+        Get the URL of the embedder service.
+        :return: the URL of the embedder service, otherwise None.
+        """
+        return self.get(self.EMBEDDER_URL_FIELD)
+
+    def get_embedder_key(self):
+        """
+        Get the API key of the embedder service.
+        :return: The API key of the embedder service, otherwise None.
+        """
+        return self.get(self.EMBEDDER_KEY_FIELD)
+
+    def get_embedder_model(self):
+        """
+        Get the model-name of the embedder service.
+        :return: The model-name of the embedder service, otherwise None.
+        """
+        return self.get(self.EMBEDDER_MODEL_FIELD)

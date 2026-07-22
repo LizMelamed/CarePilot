@@ -73,9 +73,9 @@ class ToolRepository:
     def get_tool(self, name: str, context: HiddenContext|None = None) -> BaseTool:
         """
         Retrieves a tool from the repository.
-        :param context: hidden context arguments to initialize the tool.
-        The LLM is blind to these arguments (e.g: username).
         :param name: The name of the tool.
+        :param context: hidden context arguments to initialize the tool.
+            The LLM is blind to these arguments (e.g: username).
         :return: The tool.
         """
         if name not in self._tools:
@@ -96,7 +96,7 @@ class ToolRepository:
         Retrieves a mapping of names to their tools from the repository.
         :param names: A list of tool names, to filter on.
         :param context: hidden context arguments to initialize the tools.
-        The LLM is blind to these arguments (e.g: username).
+            The LLM is blind to these arguments (e.g: username).
         :return: The filtered dict of tools.
         """
         return {name: self.get_tool(name, context=context) for name in names}
@@ -105,7 +105,7 @@ class ToolRepository:
         """
         Retrieves all tools from the repository.
         :param context: hidden context arguments to initialize the tools.
-        The LLM is blind to these arguments (e.g: username).
+            The LLM is blind to these arguments (e.g: username).
         :return: A list of all tools.
         """
         return {name: self.get_tool(name, context=context) for name in self._tools.keys()}

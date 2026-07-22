@@ -40,34 +40,21 @@ class DBHandler(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def execute_all(
-            self,
-            queries: List[str],
-            params: Optional[List[Union[Dict[str, Any], tuple, list]]] = None,
-    ) -> List[Any]:
+    def get_patient_data(self, username: str):
         """
-        Execute one or multiple SQL queries against the underlying database.
-
-        :param queries: The SQL statements to run, in the order they should be executed.
-        :param params: A list of parameter mappings that match each query. If ``None`` the
-            queries are executed without parameters.
-            params may be a list of lists/tuples/dicts.
-        :return:
-            The result of each query.  The concrete implementation decides
-            the exact type of the returned objects.
+        Get the patient's (LLM visible) data from the database.
+        :param username: username identifying the patient
+        :return: a tuple of the data, otherwise None if not found based on username.
         """
         raise NotImplementedError
 
-    def execute(
-            self,
-            query: str,
-            params: Optional[Union[Dict[str, Any], tuple, list]] = None,
-    ) -> Any:
+    @abstractmethod
+    def create_file(self, username: str, file_name: str, data: str):
         """
-        Executes a single SQL query against the underlying database.
-        :param query: the SQL query to execute.
-        :param params: the arguments to pass to the SQL query.
-        :return: the result of the SQL query: a list of rows
+        Create a new file in the database.
+        :param username: username identifying the patient that owns the file
+        :param file_name: name of the file
+        :param data: the textual data stored in the file
+        :return:
         """
-        new_params = [params] if params is not None else []
-        return self.execute_all(queries=[query], params=new_params)[0]
+        raise NotImplementedError

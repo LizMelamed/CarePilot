@@ -49,12 +49,64 @@ class DBHandler(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def create_file(self, username: str, file_name: str, data: str):
+    def upload_file(self, username: str, file_name: str, data: bytes) -> bool:
         """
         Create a new file in the database.
+        ONLY TEXT FILES ARE ALLOWED.
         :param username: username identifying the patient that owns the file
         :param file_name: name of the file
-        :param data: the textual data stored in the file
+        :param data: the data stored in the file
+        :return: True if the file was successfully uploaded, False otherwise.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_file(self, username: str, file_name: str) -> None:
+        """
+        Delete a file in the database.
+        :param username: identifying name of the patient that owns the file
+        :param file_name: the name of the file to be deleted
         :return:
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_file(self, username: str, file_name: str) -> str:
+        """
+        Get a file from the database.
+        :param username: identifying name of the patient that owns the file.
+        :param file_name: the name of the file to be retrieved.
+        :return: The textual content of the retrieved file.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def chunkify_file(self, username: str, file_name: str) -> bool:
+        """
+        Looks for a file, builds and stores a list of chunks
+        :param username: identifying name of the patient that owns the file.
+        :param file_name: the name of the file to be chunked.
+        :return: True if the file was successfully chunked, False otherwise.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_files(self, username: str) -> List[str]:
+        """
+        List all files in the database that are owned by the user.
+        :param username: identifying name of the patient that owns the files.
+        :return: a list of file names.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def query_file(self, username: str, query: str, top_k: int) -> List[tuple[str, str]]:
+        """
+        Query for files in the database that are owned by the user.
+        returns the top-k chunks that match the query.
+        :param username: identifying name of the patient that owns the files.
+        :param query: the query to be queried
+        :param top_k: the number of files to return
+        :return: a list of tuples (file_name, chunk).
         """
         raise NotImplementedError

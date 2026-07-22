@@ -52,3 +52,11 @@ class Logger(metaclass=SingletonMeta):
     def critical(self, msg, *args, **kwargs):
         kwargs.setdefault("stacklevel", 2)
         self._logger.critical(msg, *args, **kwargs)
+
+    def exception(self, msg, *args, **kwargs):
+        """
+        Log a message with level ERROR and include the exception's
+        traceback. Mirrors the behaviour of ``logging.Logger.exception``.
+        """
+        kwargs.setdefault("stacklevel", 2)  # make the log point to the caller
+        self._logger.exception(msg, *args, **kwargs)

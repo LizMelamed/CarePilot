@@ -34,9 +34,9 @@ class BaseAgent(ABC):
             raise ValueError("No LLM URL provided.")
         params["openai_api_base"] = env_handler.get_llm_url()
 
-        if env_handler.get_model() is None:
+        if env_handler.get_llm_model() is None:
             raise ValueError("No model provided.")
-        params["model"] = env_handler.get_model()
+        params["model"] = env_handler.get_llm_model()
 
 
         if env_handler.get_llm_key() is None:

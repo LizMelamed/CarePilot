@@ -1,14 +1,19 @@
 import io
 import os
-from typing import List, Optional, Dict, Any, Union
+from itertools import batched
+from typing import List
 
-from jedi.api import file_name
 from storage3.utils import StorageException
-from supabase import create_client, Client
+from supabase import AsyncClient
 
+from src.agents.embedder import Embedder
 from src.db.db_handler import DBHandler
 
 FILES_BUCKET = "carepilot_files"
+CHUNK_BATCH_SIZE = 10
+"""size of batch to send embedder to convert to vectors"""
+SUPABASE_BATCH_SIZE = 100
+"""size of a batch to send to supabase"""
 
 
 class SupabaseHandler(DBHandler):
@@ -16,14 +21,14 @@ class SupabaseHandler(DBHandler):
     A handler for a supabase database
     """
 
-    def _generate_db_object(self, url: str, auth_token: str) -> Client:
-        conn: Client = create_client(url, auth_token)
+    def _generate_db_object(self, url: str, auth_token: str) -> AsyncClient:
+        conn: AsyncClient = AsyncClient(url, auth_token)
         return conn
 
-    def get_patient_data(self, username: str):
-        client: Client = self._db
+    async def get_patient_data(self, username: str):
+        client: AsyncClient = self._db
         resp = (
-            client.table("users")
+            await client.table("users")
             .select("date_of_birth, gender, sex")
             .eq("username", username)
             .execute()
@@ -46,14 +51,14 @@ class SupabaseHandler(DBHandler):
             first_row.get("sex"),
         )
 
-    def upload_file(self, username: str, file_name: str, data: bytes):
-        client: Client = self._db
+    async def upload_file(self, username: str, file_name: str, data: bytes):
+        client: AsyncClient = self._db
         file_path = self.__file_path(username, file_name)
 
         try:
 
             # get user_id
-            response = client.table("users").select("id").eq("username", username).execute()
+            response = await client.table("users").select("id").eq("username", username).execute()
             if not response:
                 self._logger.error(f"User '{username}' not found.")
                 return False
@@ -63,7 +68,7 @@ class SupabaseHandler(DBHandler):
             self._logger.info(f"Uploading file: '{file_path}'.")
 
             # overwrite file
-            response = client.storage.from_(FILES_BUCKET).upload(
+            response = await client.storage.from_(FILES_BUCKET).upload(
                 path=file_path,
                 file=data,
                 file_options={"upsert": "true"}  # Allows overwriting existing files
@@ -84,7 +89,7 @@ class SupabaseHandler(DBHandler):
 
             # update files table
             db_response = (
-                client.table("files")
+                await client.table("files")
                 .upsert(
                     {
                         "user_id": user_id,
@@ -110,13 +115,13 @@ class SupabaseHandler(DBHandler):
             self._logger.exception(f"Unexpected Error during upload: {e}")
             return False
 
-    def delete_file(self, username: str, file_name: str) -> bool:
-        client: Client = self._db
+    async def delete_file(self, username: str, file_name: str) -> bool:
+        client: AsyncClient = self._db
         file_path = self.__file_path(username, file_name)
 
         try:
             # get user_id
-            response = client.table("users").select("id").eq("username", username).execute()
+            response = await client.table("users").select("id").eq("username", username).execute()
             if not response or not response.data:
                 self._logger.error(f"User '{username}' not found.")
                 return False
@@ -124,7 +129,7 @@ class SupabaseHandler(DBHandler):
 
             # delete file from Supabase storage
             self._logger.info(f"Deleting file: '{file_path}' from storage.")
-            del_resp = client.storage.from_(FILES_BUCKET).remove([file_path])
+            del_resp = await client.storage.from_(FILES_BUCKET).remove([file_path])
             # sanity check: deletion must succeed
             is_removed = False
             if isinstance(del_resp, dict):
@@ -141,7 +146,7 @@ class SupabaseHandler(DBHandler):
                 f"Deleted file '{file_path}' from storage. Removing DB record..."
             )
             db_response = (
-                client.table("files")
+                await client.table("files")
                 .delete()
                 .eq("user_id", user_id)
                 .eq("file_name", file_name)
@@ -166,14 +171,14 @@ class SupabaseHandler(DBHandler):
             self._logger.exception(f"Unexpected Error during delete: {e}")
             return False
 
-    def get_file(self, username: str, file_name: str) -> str|None:
-        client: Client = self._db
+    async def get_file(self, username: str, file_name: str) -> str | None:
+        client: AsyncClient = self._db
 
         _, file_ext = os.path.splitext(file_name)
 
         try:
             # get user_id
-            response = client.table("users").select("id").eq("username", username).execute()
+            response = await client.table("users").select("id").eq("username", username).execute()
             if not response or not response.data:
                 self._logger.error(f"User '{username}' not found.")
                 return
@@ -181,17 +186,17 @@ class SupabaseHandler(DBHandler):
 
             self._logger.info(f"Getting {username}'s file: '{file_name}' from storage...")
             # get file_path in storage
-            response = (client.table("files").select("file_path")
+            response = (await client.table("files").select("file_path")
                         .eq("user_id", user_id)
                         .eq("file_name", file_name)
                         .execute())
             if not response or not response.data:
                 self._logger.error(f"User '{username}' not found.")
-                return
+                return None
             file_path = response.data[0].get("file_path")
             self._logger.info(f"Found path: '{file_path}'.")
 
-            file_bytes: bytes = client.storage.from_(FILES_BUCKET).download(file_path)
+            file_bytes: bytes = await client.storage.from_(FILES_BUCKET).download(file_path)
             stream = io.BytesIO(file_bytes)
             result = self._md.convert(stream, file_extension=file_ext)
 
@@ -199,23 +204,71 @@ class SupabaseHandler(DBHandler):
 
         except StorageException as e:
             self._logger.exception(f"Storage API Error: {e}")
-            return
+            return None
         except Exception as e:
             self._logger.exception(f"Unexpected Error during delete: {e}")
-            return
+            return None
+
+    async def chunkify_file(self, username: str, file_name: str) -> bool:
+        client: AsyncClient = self._db
+        embedder: Embedder = Embedder()
+
+        self._logger.info("Getting user id and file id...")
+        # get user_id
+        resp = await client.table("users").select("id").eq("username", username).execute()
+        if not resp or not resp.data:
+            return False
+        user_id = resp.data[0].get("id")
+
+        # get file_id
+        resp = await client.table("files").select("id").eq("user_id", user_id).eq("file_name", file_name).execute()
+        if not resp or not resp.data:
+            return False
+        file_id = resp.data[0].get("id")
+
+        file_text = await self.get_file(username, file_name)
+        if file_text is None:
+            return False
+
+        self._logger.info("Embedding chunks...")
+        chunks = self._medical_splitter.split_text(file_text)
+        vectors = await embedder.get().aembed_documents(chunks, chunk_size=CHUNK_BATCH_SIZE)
+
+        self._logger.info("Uploading chunks...")
+        rows = [
+            {
+                "file_id": file_id,
+                "chunk_index": idx,
+                "content": content,
+                "embedding": vector
+            }
+            for idx, (content, vector) in enumerate(zip(chunks, vectors))
+        ]
+        # whether all batches were uploaded successfully
+        all_success = True
+        for batch_rows in batched(rows, SUPABASE_BATCH_SIZE):
+            try:
+                resp = await self._db.table("chunks").upsert(list(batch_rows)).execute()
+            except Exception as e:
+                self._logger.exception(f"Uploading chunks failed: {e}")
+                all_success = False
+
+        return all_success
 
 
-    def chunkify_file(self, username: str, file_name: str) -> bool:
-        pass
 
-    def list_files(self, username: str) -> List[str]:
-        client: Client = self._db
+
+
+
+
+    async def list_files(self, username: str) -> List[str]:
+        client: AsyncClient = self._db
         user_path = self.__file_path(username, "")
 
-        files = client.storage.from_(FILES_BUCKET).list(user_path)
+        files = await client.storage.from_(FILES_BUCKET).list(user_path)
         return [f["name"] for f in files if f.get("id")]
 
-    def query_file(self, username: str, query: str, top_k: int) -> List[tuple[str, str]]:
+    async def query_file(self, username: str, query: str, top_k: int) -> List[tuple[str, str]]:
         pass
 
     # utils

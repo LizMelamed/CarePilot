@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union
 
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from markitdown import MarkItDown
 
 from src.utils.my_env import MyEnv
@@ -26,6 +27,19 @@ class DBHandler(ABC):
         self._logger.info("Initializing database object...")
         self._db = self._generate_db_object(url=url, auth_token=auth_token)
         self._md = MarkItDown()
+
+        self._medical_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=3500,  # ~875 tokens
+            chunk_overlap=600,  # ~150 tokens (~17% margin)
+            separators=[
+                "\n# ",
+                "\n## ",
+                "\n\n",
+                "\n",
+                ". ",
+                " "
+            ])
+        """The splitter used for chunkifying medical documents."""
         self._logger.info("Database object initialized.")
 
         self._logger.info("DBHandler initialized.")
@@ -43,7 +57,7 @@ class DBHandler(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_patient_data(self, username: str):
+    async def get_patient_data(self, username: str):
         """
         Get the patient's (LLM visible) data from the database.
         :param username: username identifying the patient
@@ -52,7 +66,7 @@ class DBHandler(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def upload_file(self, username: str, file_name: str, data: bytes) -> bool:
+    async def upload_file(self, username: str, file_name: str, data: bytes) -> bool:
         """
         Create or replace an existing file in the database.
         ONLY TEXT FILES ARE ALLOWED.
@@ -64,7 +78,7 @@ class DBHandler(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def delete_file(self, username: str, file_name: str) -> bool:
+    async def delete_file(self, username: str, file_name: str) -> bool:
         """
         Delete a file in the database.
         :param username: identifying name of the patient that owns the file
@@ -74,7 +88,7 @@ class DBHandler(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_file(self, username: str, file_name: str) -> str|None:
+    async def get_file(self, username: str, file_name: str) -> str|None:
         """
         Get a file from the database.
         Uses markitdown to convert the file to a string in Markdown format.
@@ -85,7 +99,7 @@ class DBHandler(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def chunkify_file(self, username: str, file_name: str) -> bool:
+    async def chunkify_file(self, username: str, file_name: str) -> bool:
         """
         Looks for a file, builds and stores a list of chunks
         :param username: identifying name of the patient that owns the file.
@@ -95,7 +109,7 @@ class DBHandler(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def list_files(self, username: str) -> List[str]:
+    async def list_files(self, username: str) -> List[str]:
         """
         List all files in the database that are owned by the user.
         :param username: identifying name of the patient that owns the files.
@@ -104,7 +118,7 @@ class DBHandler(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def query_file(self, username: str, query: str, top_k: int) -> List[tuple[str, str]]:
+    async def query_file(self, username: str, query: str, top_k: int) -> List[tuple[str, str]]:
         """
         Query for files in the database that are owned by the user.
         returns the top-k chunks that match the query.

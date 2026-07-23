@@ -31,18 +31,9 @@ class Embedder(metaclass=SingletonMeta):
         """The Embedder object used to generate vector embeddings."""
         self._logger.info(f"Embedder initialized.")
 
-    async def generate_embedding_async(self, text: str):
+    def get(self) -> OpenAIEmbeddings:
         """
-        Generate embedding for given text.
-        :param text: Given text to generate embedding for.
-        :return: The embedding for given text.
+        Get the embedder object used to generate vector embeddings.
+        :return:
         """
-        return self._embeddings.aembed_query(text)
-
-    def generate_embedding(self, text: str) -> list[float]:
-        """
-        Generate embedding for given text.
-        :param text: Given text to generate embedding for.
-        :return: The embedding for given text.
-        """
-        return self._embeddings.embed_query(text)
+        return self._embeddings

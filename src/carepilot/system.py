@@ -21,7 +21,7 @@ class System:
 
     def _register_tools(self):
 
-        # EXPECTS username IN HIDDEN CONTEXT.
+        # username isn't specified by the LLM.
 
         self._tools.register_func(
             afunc=self._db_handler.get_patient_data,

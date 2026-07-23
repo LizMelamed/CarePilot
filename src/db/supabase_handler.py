@@ -266,6 +266,8 @@ class SupabaseHandler(DBHandler):
         client: AsyncClient = self._db
         embedder: Embedder = Embedder()
 
+        self._logger.info(f"Querying user '{username}' and query: '{query}'...")
+
         self._logger.info("Embedding query...")
         query_vector = await embedder.get().aembed_query(query)
         self._logger.info("Querying file...")

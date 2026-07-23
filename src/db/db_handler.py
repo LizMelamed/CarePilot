@@ -144,7 +144,7 @@ class DBHandler(ABC):
     @abstractmethod
     async def list_users(self) -> list[str]:
         """
-        List all users in the database.
+        List all users in the database. THIS INFORMATION IS NOT FOR THE AGENT.
         :return: a list of usernames.
         """
         raise NotImplementedError

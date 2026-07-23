@@ -8,7 +8,7 @@ from src.utils.singleton import SingletonMeta
 
 class DBHandler(ABC):
     """
-    A singleton abstract handler for the database
+    An abstract handler for the database
     """
 
     def __init__(self):

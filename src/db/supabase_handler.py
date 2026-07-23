@@ -10,7 +10,7 @@ FILES_BUCKET = "carepilot_files"
 
 class SupabaseHandler(DBHandler):
     """
-    A singleton handler for any libsql database
+    A handler for a supabase database
     """
 
     def _generate_db_object(self, url: str, auth_token: str) -> Client:

@@ -177,25 +177,21 @@ class SupabaseHandler(DBHandler):
         _, file_ext = os.path.splitext(file_name)
 
         try:
-            # get user_id
-            response = await client.table("users").select("id").eq("username", username).execute()
-            if not response or not response.data:
-                self._logger.error(f"User '{username}' not found.")
-                return
-            user_id = response.data[0].get("id")
-
             self._logger.info(f"Getting {username}'s file: '{file_name}' from storage...")
-            # get file_path in storage
-            response = (await client.table("files").select("file_path")
-                        .eq("user_id", user_id)
-                        .eq("file_name", file_name)
-                        .execute())
+            response = await (
+                client.table("files")
+                .select("file_path, users!inner()")
+                .eq("users.username", username)
+                .eq("file_name", file_name)
+                .execute()
+            )
             if not response or not response.data:
-                self._logger.error(f"User '{username}' not found.")
+                self._logger.error(f"File '{file_name}' of user '{username}' not found.")
                 return None
             file_path = response.data[0].get("file_path")
             self._logger.info(f"Found path: '{file_path}'.")
 
+            self._logger.info(f"Retrieving file '{file_path}' from storage...")
             file_bytes: bytes = await client.storage.from_(FILES_BUCKET).download(file_path)
             stream = io.BytesIO(file_bytes)
             result = self._md.convert(stream, file_extension=file_ext)
@@ -213,18 +209,18 @@ class SupabaseHandler(DBHandler):
         client: AsyncClient = self._db
         embedder: Embedder = Embedder()
 
-        self._logger.info("Getting user id and file id...")
-        # get user_id
-        resp = await client.table("users").select("id").eq("username", username).execute()
-        if not resp or not resp.data:
+        self._logger.info("Getting file id for user...")
+        response = await (
+            client.table("files")
+            .select("id, users!inner()")
+            .eq("users.username", username)
+            .eq("file_name", file_name)
+            .execute()
+        )
+        if not response or not response.data:
+            self._logger.error(f"File '{file_name}' of user '{username}' not found.")
             return False
-        user_id = resp.data[0].get("id")
-
-        # get file_id
-        resp = await client.table("files").select("id").eq("user_id", user_id).eq("file_name", file_name).execute()
-        if not resp or not resp.data:
-            return False
-        file_id = resp.data[0].get("id")
+        file_id = response.data[0].get("id")
 
         file_text = await self.get_file(username, file_name)
         if file_text is None:
@@ -255,21 +251,73 @@ class SupabaseHandler(DBHandler):
 
         return all_success
 
-
-
-
-
-
-
     async def list_files(self, username: str) -> List[str]:
         client: AsyncClient = self._db
-        user_path = self.__file_path(username, "")
 
-        files = await client.storage.from_(FILES_BUCKET).list(user_path)
-        return [f["name"] for f in files if f.get("id")]
+        response = await (
+            client.table("files")
+            .select("file_name, users!inner()")
+            .eq("users.username", username)
+            .execute()
+        )
+        return [row["file_name"] for row in response.data]
 
-    async def query_file(self, username: str, query: str, top_k: int) -> List[tuple[str, str]]:
-        pass
+    async def query_file(self, username: str, query: str, top_k: int) -> List[tuple[str, str, str]]:
+        client: AsyncClient = self._db
+        embedder: Embedder = Embedder()
+
+        self._logger.info("Embedding query...")
+        query_vector = await embedder.get().aembed_query(query)
+        self._logger.info("Querying file...")
+        try:
+            response = await client.rpc(
+                "query_file",
+                {
+                    "p_username": username,
+                    "p_query_embedding": query_vector,
+                    "p_top_k": top_k,
+                }
+            ).execute()
+
+            selected_chunks_tuples = [
+                (item["file_name"], item["chunk_index"], item["content"])
+                for item in response.data
+            ]
+            return selected_chunks_tuples
+        except Exception as e:
+            self._logger.exception(f"Query API Error: {e}")
+            return []
+
+    async def file_exists(self, username: str, file_name: str) -> bool:
+        client: AsyncClient = self._db
+        file_path = self.__file_path(username, file_name)
+
+        # looks for file_id, if found -> file exists
+        response = await (
+            client.table("files")
+            .select("id, users!inner()")
+            .eq("users.username", username)
+            .eq("file_name", file_name)
+            .execute()
+        )
+        # either response is None, response.data is None or [] ([] evaluates to False)
+        if not response or not response.data:
+            return False
+
+        # check if file exists in storage
+        response = await (client.storage.from_(FILES_BUCKET).exists(file_path))
+        return response
+
+    async def list_users(self) -> list[str]:
+        client: AsyncClient = self._db
+
+        response = await (
+            client.table("users").select("username").execute())
+        if not response or not response.data:
+            self._logger.error(f"Failed to get response for users table.")
+            return []
+        return [row["username"] for row in response.data]
+
 
     # utils
     @staticmethod

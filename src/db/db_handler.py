@@ -118,13 +118,33 @@ class DBHandler(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def query_file(self, username: str, query: str, top_k: int) -> List[tuple[str, str]]:
+    async def query_file(self, username: str, query: str, top_k: int) -> List[tuple[str, str, str]]:
         """
         Query for files in the database that are owned by the user.
+        The query is written in natural language, and information is retrieved as RAG chunks.
         returns the top-k chunks that match the query.
         :param username: identifying name of the patient that owns the files.
         :param query: the query to be queried
         :param top_k: the number of files to return
-        :return: a list of tuples (file_name, chunk).
+        :return: a list of tuples (file_name, chunk_index, chunk_text).
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def file_exists(self, username: str, file_name: str) -> bool:
+        """
+        Determines if the file exists in the database and is owned by the user.
+        also verifies that the same file exists in storage.
+        :param username: identifying name of the patient that owns the file.
+        :param file_name: name of the file to be checked
+        :return: True if the file exists, False otherwise.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def list_users(self) -> list[str]:
+        """
+        List all users in the database.
+        :return: a list of usernames.
         """
         raise NotImplementedError

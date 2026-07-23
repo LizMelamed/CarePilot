@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union
 
+from markitdown import MarkItDown
+
 from src.utils.my_env import MyEnv
 from src.utils.logger import Logger
 from src.utils.singleton import SingletonMeta
@@ -23,6 +25,7 @@ class DBHandler(ABC):
 
         self._logger.info("Initializing database object...")
         self._db = self._generate_db_object(url=url, auth_token=auth_token)
+        self._md = MarkItDown()
         self._logger.info("Database object initialized.")
 
         self._logger.info("DBHandler initialized.")
@@ -51,7 +54,7 @@ class DBHandler(ABC):
     @abstractmethod
     def upload_file(self, username: str, file_name: str, data: bytes) -> bool:
         """
-        Create a new file in the database.
+        Create or replace an existing file in the database.
         ONLY TEXT FILES ARE ALLOWED.
         :param username: username identifying the patient that owns the file
         :param file_name: name of the file
@@ -61,22 +64,23 @@ class DBHandler(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def delete_file(self, username: str, file_name: str) -> None:
+    def delete_file(self, username: str, file_name: str) -> bool:
         """
         Delete a file in the database.
         :param username: identifying name of the patient that owns the file
         :param file_name: the name of the file to be deleted
-        :return:
+        :return: True if the file was successfully deleted, False otherwise.
         """
         raise NotImplementedError
 
     @abstractmethod
-    def get_file(self, username: str, file_name: str) -> str:
+    def get_file(self, username: str, file_name: str) -> str|None:
         """
         Get a file from the database.
+        Uses markitdown to convert the file to a string in Markdown format.
         :param username: identifying name of the patient that owns the file.
         :param file_name: the name of the file to be retrieved.
-        :return: The textual content of the retrieved file.
+        :return: The textual content of the retrieved file, otherwise None if not found based on username and file_name.
         """
         raise NotImplementedError
 

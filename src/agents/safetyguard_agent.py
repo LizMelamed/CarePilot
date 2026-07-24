@@ -21,8 +21,8 @@ class SafetyGuardAgent(BaseAgent):
 
     def __init__(self, name: str, tools):
         super().__init__(name, tools)
-        # this model uses high reasoning
-        self._model.bind(reasoning_effort="high")
+        # this model uses high reasoning (bind is immutable)
+        self._model = self._model.bind(reasoning_effort="high")
 
 
     async def act(self, ctx: AgentContext):

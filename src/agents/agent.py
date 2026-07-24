@@ -1,4 +1,5 @@
 from abc import abstractmethod, ABC
+from dataclasses import dataclass
 from typing import Dict
 
 from langchain_core.messages import AIMessage, HumanMessage
@@ -8,6 +9,13 @@ from langchain_openai import ChatOpenAI
 from src.utils.logger import Logger
 from src.utils.my_env import MyEnv
 
+@dataclass
+class AgentContext:
+    """
+    Context for the BaseAgent class.
+    """
+    prompts: list[HumanMessage|AIMessage]
+    """List of prompts that the agent needs to perform the action."""
 
 class BaseAgent(ABC):
     """
@@ -52,11 +60,11 @@ class BaseAgent(ABC):
         self._logger.info(f"Agent '{self._name}' initialized.")
 
     @abstractmethod
-    async def act(self, prompts: list[HumanMessage|AIMessage]):
+    async def act(self, ctx: AgentContext):
         """
         Performs an action given a list of prompts.
-        :param prompts: one or more prompts that contain the information
-        required to perform the action.
+        :param ctx: context object containing the relevant information the agent
+            needs in order to perform the action.
         :return: The result of the action.
         """
         raise NotImplementedError

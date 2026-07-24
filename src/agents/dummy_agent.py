@@ -1,15 +1,14 @@
-from langchain_core.messages import HumanMessage, AIMessage
+from src.agents.agent import BaseAgent, AgentContext
 
-from src.agents.agent import BaseAgent
 
 class DummyAgent(BaseAgent):
     """
     Example agent that sends a request to the LLM and receives a response.
     """
 
-    async def act(self, prompts: list[HumanMessage|AIMessage]):
+    async def act(self, ctx: AgentContext):
         response = self._model.invoke(
-            prompts
+            ctx.prompts
         )
 
         if isinstance(response, dict):

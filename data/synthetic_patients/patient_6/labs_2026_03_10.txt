@@ -1,0 +1,10 @@
+Document: Laboratory Results 2026-03-10
+Category: lab/results
+Patient ID: patient_6
+Patient name: Synthetic Patient 6
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Diagnosis context: ovarian cancer, stage IIIC.
+CBC: WBC 3.1 K/uL, ANC 1.6 K/uL, hemoglobin 11.0 g/dL, platelets 166 K/uL.
+Tumor marker or disease marker: CA-125 decreased from 410 to 188 U/mL.
+Plain annotation: values are plausible synthetic monitoring data for retrieval testing.

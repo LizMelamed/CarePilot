@@ -1,0 +1,10 @@
+Document: Oncology Appointment Summary 2026-03-12
+Category: appointment summary
+Patient ID: patient_4
+Patient name: Synthetic Patient 4
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Clinician: Dr. Eyal Shamir.
+Assessment: interval status reviewed after recent treatment.
+Plan update: keep ABVD chemotherapy; confirm supportive medications are available at home.
+Next steps: review insurance status, track referral status, and bring medication list to the next visit.

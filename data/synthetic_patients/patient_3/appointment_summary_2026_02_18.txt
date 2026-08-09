@@ -1,0 +1,11 @@
+Document: Oncology Appointment Summary 2026-02-18
+Category: appointment summary
+Patient ID: patient_3
+Patient name: Synthetic Patient 3
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Clinician: Dr. Noga Halevi.
+Assessment: Synthetic Patient 3 is being treated for non-small cell lung cancer, stage IV.
+Treatment plan: pembrolizumab with carboplatin and pemetrexed.
+Symptoms discussed: fatigue, appetite changes, and questions about appointment timing.
+Next steps: continue current plan, repeat labs before the next cycle, and call urgently for fever or worsening symptoms.

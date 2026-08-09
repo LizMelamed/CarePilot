@@ -1,0 +1,11 @@
+Document: Insurance Pre-authorization Letter
+Category: insurance/pre-approval
+Patient ID: patient_1
+Patient name: Synthetic Patient 1
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Insurer: Clalit Shield.
+Requested service: oncology treatment support for lumpectomy followed by paclitaxel and trastuzumab.
+Status: approved.
+Ground truth: trastuzumab pre-approval is approved through 2026-08-31.
+Patient action: keep this letter with oncology records and ask the clinic coordinator about any pending or expired authorization.

@@ -1,0 +1,10 @@
+Document: Oncology Appointment Summary 2026-03-12
+Category: appointment summary
+Patient ID: patient_7
+Patient name: Synthetic Patient 7
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Clinician: Dr. Ronen Gal.
+Assessment: interval status reviewed after recent treatment.
+Plan update: keep modified FOLFIRINOX before surgery review; confirm supportive medications are available at home.
+Next steps: review insurance status, track referral status, and bring medication list to the next visit.

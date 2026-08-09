@@ -1,0 +1,11 @@
+Document: Referral Status
+Category: referral
+Patient ID: patient_6
+Patient name: Synthetic Patient 6
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Referral target: genetic counseling.
+Referral status: pending.
+Reason: care coordination for ovarian cancer, stage IIIC.
+Ground truth: referral to genetic counseling is pending.
+Next step: clinic coordinator should verify the referral before the next oncology appointment.

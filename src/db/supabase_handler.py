@@ -1,10 +1,17 @@
 import io
 import os
 from itertools import batched
-from typing import List
+from typing import Any, List
 
-from storage3.utils import StorageException
-from supabase import AsyncClient
+try:
+    from storage3.utils import StorageException
+except ImportError:
+    StorageException = Exception
+
+try:
+    from supabase import AsyncClient
+except ImportError:
+    AsyncClient = object
 
 from src.agents.embedder import Embedder
 from src.db.db_handler import DBHandler
@@ -22,7 +29,12 @@ class SupabaseHandler(DBHandler):
     """
 
     def _generate_db_object(self, url: str, auth_token: str) -> AsyncClient:
-        conn: AsyncClient = AsyncClient(url, auth_token)
+        try:
+            from supabase import AsyncClient as SupabaseAsyncClient
+        except ImportError as exc:
+            raise ImportError("supabase is required to instantiate SupabaseHandler") from exc
+
+        conn: AsyncClient = SupabaseAsyncClient(url, auth_token)
         return conn
 
     async def get_patient_data(self, username: str):
@@ -59,7 +71,7 @@ class SupabaseHandler(DBHandler):
 
             # get user_id
             response = await client.table("users").select("id").eq("username", username).execute()
-            if not response:
+            if not response or not response.data:
                 self._logger.error(f"User '{username}' not found.")
                 return False
             rows = response.data
@@ -87,32 +99,118 @@ class SupabaseHandler(DBHandler):
 
             self._logger.info(f"Uploaded file '{file_path}' to storage. Saving DB record...")
 
-            # update files table
-            db_response = (
-                await client.table("files")
-                .upsert(
-                    {
-                        "user_id": user_id,
-                        "file_path": file_path,
-                        "file_name": file_name,
-                    },
-                    on_conflict="file_path"  # Replaces existing record if file_path is already registered
-                )
-                .execute()
-            )
+            content = self._extract_text(data, file_name)
 
-            if db_response.data:
+            # update files table
+            payload = {
+                "user_id": user_id,
+                "file_path": file_path,
+                "file_name": file_name,
+                "content": content,
+            }
+            db_response = await self._upsert_file_record(payload)
+
+            if db_response:
                 self._logger.info(f"Successfully recorded '{file_path}' in 'files' table.")
                 return True
-            else:
-                self._logger.error(f"File uploaded, but failed to insert record into database.")
-                return False
+            self._logger.error(f"File uploaded, but failed to insert record into database.")
+            return False
 
         except StorageException as e:
             self._logger.exception(f"Storage API Error: {e}")
             return False
         except Exception as e:
             self._logger.exception(f"Unexpected Error during upload: {e}")
+            return False
+
+    async def _upsert_file_record(self, payload: dict[str, Any]) -> bool:
+        try:
+            db_response = (
+                await self._db.table("files")
+                .upsert(
+                    payload,
+                    on_conflict="file_path"  # Replaces existing record if file_path is already registered
+                )
+                .execute()
+            )
+            return bool(db_response.data)
+        except Exception as e:
+            if "content" not in payload or "content" not in str(e).lower():
+                raise
+            fallback_payload = {key: value for key, value in payload.items() if key != "content"}
+            db_response = (
+                await self._db.table("files")
+                .upsert(fallback_payload, on_conflict="file_path")
+                .execute()
+            )
+            return bool(db_response.data)
+
+    async def _download_file_text(self, file_path: str, file_name: str) -> str | None:
+        _, file_ext = os.path.splitext(file_name)
+        try:
+            file_bytes: bytes = await self._db.storage.from_(FILES_BUCKET).download(file_path)
+            stream = io.BytesIO(file_bytes)
+            result = self._md.convert(stream, file_extension=file_ext)
+            return str(result)
+        except Exception as e:
+            self._logger.exception(f"Unexpected Error during storage file read: {e}")
+            return None
+
+    async def _select_patient_document_rows(self, username: str, limit: int):
+        try:
+            return await (
+                self._db.table("files")
+                .select("file_name, file_path, content, metadata, users!inner(username)")
+                .eq("users.username", username)
+                .limit(limit)
+                .execute()
+            )
+        except Exception as e:
+            if "content" not in str(e).lower():
+                raise
+            try:
+                return await (
+                    self._db.table("files")
+                    .select("file_name, file_path, metadata, users!inner(username)")
+                    .eq("users.username", username)
+                    .limit(limit)
+                    .execute()
+                )
+            except Exception as metadata_error:
+                if "metadata" not in str(metadata_error).lower():
+                    raise
+                return await (
+                    self._db.table("files")
+                    .select("file_name, file_path, users!inner(username)")
+                    .eq("users.username", username)
+                    .limit(limit)
+                    .execute()
+                )
+
+    async def _upsert_file_record_with_optional_content(self, payload: dict[str, Any]) -> bool:
+        try:
+            response = await (
+                self._db.table("files")
+                .upsert(payload, on_conflict="file_path")
+                .execute()
+            )
+            return bool(response and response.data)
+        except Exception as e:
+            if "content" not in payload or "content" not in str(e).lower():
+                raise
+            fallback_payload = {key: value for key, value in payload.items() if key != "content"}
+            response = await (
+                self._db.table("files")
+                .upsert(fallback_payload, on_conflict="file_path")
+                .execute()
+            )
+            return bool(response and response.data)
+
+        except StorageException as e:
+            self._logger.exception(f"Storage API Error: {e}")
+            return False
+        except Exception as e:
+            self._logger.exception(f"Unexpected Error during file record upsert: {e}")
             return False
 
     async def delete_file(self, username: str, file_name: str) -> bool:
@@ -231,6 +329,11 @@ class SupabaseHandler(DBHandler):
         vectors = await embedder.get().aembed_documents(chunks, chunk_size=CHUNK_BATCH_SIZE)
 
         self._logger.info("Uploading chunks...")
+        try:
+            await self._db.table("chunks").delete().eq("file_id", file_id).execute()
+        except Exception as e:
+            self._logger.exception(f"Deleting old chunks failed: {e}")
+            return False
         rows = [
             {
                 "file_id": file_id,
@@ -261,6 +364,35 @@ class SupabaseHandler(DBHandler):
             .execute()
         )
         return [row["file_name"] for row in response.data]
+
+    async def get_patient_documents(
+            self,
+            username: str,
+            limit: int = 10,
+    ) -> list[dict[str, Any]]:
+        client: AsyncClient = self._db
+
+        try:
+            response = await self._select_patient_document_rows(username, limit)
+            documents = []
+            for row in response.data:
+                file_name = row.get("file_name")
+                file_path = row.get("file_path")
+                content = row.get("content")
+                if content is None and file_path and file_name:
+                    content = await self._download_file_text(file_path, file_name)
+                documents.append(
+                    {
+                        "file_name": file_name,
+                        "file_path": file_path,
+                        "content": content,
+                        "metadata": row.get("metadata"),
+                    }
+                )
+            return documents
+        except Exception as e:
+            self._logger.exception(f"Unexpected Error during patient document read: {e}")
+            return []
 
     async def query_file(self, username: str, query: str, top_k: int) -> List[tuple[str, str, str]]:
         client: AsyncClient = self._db
@@ -320,8 +452,197 @@ class SupabaseHandler(DBHandler):
             return []
         return [row["username"] for row in response.data]
 
+    async def upsert_patient_profile(
+            self,
+            username: str,
+            profile: dict[str, Any],
+    ) -> str | None:
+        client: AsyncClient = self._db
+
+        payload = {
+            "username": username,
+            "first_name": profile.get("first_name") or profile.get("display_name") or username,
+            "last_name": profile.get("last_name") or "Patient",
+            "date_of_birth": profile.get("date_of_birth") or "1970-01-01",
+            "age": profile.get("age"),
+            "gender": profile.get("gender") or "unknown",
+            "sex": profile.get("sex") or "unknown",
+            "display_name": profile.get("display_name"),
+            "home_city": profile.get("home_city"),
+            "diagnosis": profile.get("diagnosis"),
+            "cancer_stage": profile.get("stage"),
+            "treatment_plan": profile.get("treatment_plan"),
+        }
+        payload = {
+            key: value
+            for key, value in payload.items()
+            if value is not None
+        }
+
+        try:
+            response = await (
+                client.table("users")
+                .upsert(payload, on_conflict="username")
+                .execute()
+            )
+            if not response or not response.data:
+                self._logger.error(f"Failed to upsert user '{username}'.")
+                return None
+            return response.data[0].get("id")
+        except Exception as e:
+            self._logger.exception(f"Unexpected Error during patient profile upsert: {e}")
+            return None
+
+    async def upsert_patient_document(
+            self,
+            username: str,
+            file_name: str,
+            content: str,
+            metadata: dict[str, Any] | None = None,
+    ) -> bool:
+        client: AsyncClient = self._db
+
+        try:
+            user_response = await (
+                client.table("users")
+                .select("id")
+                .eq("username", username)
+                .execute()
+            )
+            if not user_response or not user_response.data:
+                self._logger.error(f"User '{username}' not found.")
+                return False
+
+            user_id = user_response.data[0].get("id")
+            payload = {
+                "user_id": user_id,
+                "file_path": self.__file_path(username, file_name),
+                "file_name": file_name,
+                "content": content,
+                "metadata": metadata or {},
+            }
+            return await self._upsert_file_record_with_optional_content(payload)
+        except Exception as e:
+            self._logger.exception(f"Unexpected Error during patient document upsert: {e}")
+            return False
+
+    async def save_execution(
+            self,
+            username_or_session: str,
+            prompt: str,
+            final_response: str | None,
+            status: str,
+            steps: list[dict[str, Any]],
+            error: str | None = None,
+    ) -> str | None:
+        client: AsyncClient = self._db
+
+        try:
+            execution_payload: dict[str, Any] = {
+                "username_or_session": username_or_session,
+                "prompt": prompt,
+                "final_response": final_response,
+                "status": status,
+                "error": error,
+            }
+
+            user_response = await (
+                client.table("users")
+                .select("id")
+                .eq("username", username_or_session)
+                .execute()
+            )
+            if user_response and user_response.data:
+                execution_payload["user_id"] = user_response.data[0].get("id")
+
+            execution_response = await (
+                client.table("executions")
+                .insert(execution_payload)
+                .execute()
+            )
+            if not execution_response or not execution_response.data:
+                self._logger.error("Failed to save execution.")
+                return None
+
+            execution_id = execution_response.data[0].get("id")
+            step_rows = [
+                self.__execution_step_payload(execution_id, step, index + 1)
+                for index, step in enumerate(steps)
+            ]
+
+            if step_rows:
+                steps_response = await (
+                    client.table("execution_steps")
+                    .insert(step_rows)
+                    .execute()
+                )
+                if not steps_response or steps_response.data is None:
+                    self._logger.error(f"Failed to save steps for execution '{execution_id}'.")
+                    return None
+
+            return execution_id
+        except Exception as e:
+            self._logger.exception(f"Unexpected Error during execution save: {e}")
+            return None
+
+    async def get_execution_history(
+            self,
+            username_or_session: str,
+            limit: int = 10,
+    ) -> list[dict[str, Any]]:
+        client: AsyncClient = self._db
+
+        try:
+            executions_response = await (
+                client.table("executions")
+                .select("*")
+                .eq("username_or_session", username_or_session)
+                .order("created_at", desc=True)
+                .limit(limit)
+                .execute()
+            )
+            if not executions_response or not executions_response.data:
+                return []
+
+            executions = executions_response.data
+            execution_ids = [execution["id"] for execution in executions]
+            steps_response = await (
+                client.table("execution_steps")
+                .select("*")
+                .in_("execution_id", execution_ids)
+                .order("step_order")
+                .execute()
+            )
+
+            steps_by_execution_id: dict[str, list[dict[str, Any]]] = {
+                execution_id: []
+                for execution_id in execution_ids
+            }
+            for step in steps_response.data if steps_response else []:
+                steps_by_execution_id.setdefault(step["execution_id"], []).append(step)
+
+            return [
+                {
+                    **execution,
+                    "steps": steps_by_execution_id.get(execution["id"], []),
+                }
+                for execution in executions
+            ]
+        except Exception as e:
+            self._logger.exception(f"Unexpected Error during execution history read: {e}")
+            return []
+
 
     # utils
+    def _extract_text(self, data: bytes, file_name: str) -> str | None:
+        _, file_ext = os.path.splitext(file_name)
+        try:
+            result = self._md.convert(io.BytesIO(data), file_extension=file_ext)
+            return str(result)
+        except Exception as e:
+            self._logger.exception(f"Unexpected Error during content extraction: {e}")
+            return None
+
     @staticmethod
     def __file_path(username: str, file_name: str) -> str:
         """
@@ -331,3 +652,22 @@ class SupabaseHandler(DBHandler):
         :return:
         """
         return f"{username}/{file_name}"
+
+    @staticmethod
+    def __execution_step_payload(
+            execution_id: str,
+            step: dict[str, Any],
+            default_step_order: int,
+    ) -> dict[str, Any]:
+        module = step.get("module")
+        if not module:
+            raise ValueError("Execution step is missing required field: module")
+
+        return {
+            "execution_id": execution_id,
+            "module": module,
+            "system_prompt": step.get("system_prompt"),
+            "user_prompt": step.get("user_prompt"),
+            "response": step.get("response"),
+            "step_order": step.get("step_order", default_step_order),
+        }

@@ -1,0 +1,11 @@
+Document: Insurance Pre-authorization Letter
+Category: insurance/pre-approval
+Patient ID: patient_9
+Patient name: Synthetic Patient 9
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Insurer: Clalit Shield.
+Requested service: oncology treatment support for nivolumab adjuvant immunotherapy.
+Status: pending.
+Ground truth: dermatology surveillance referral is missing.
+Patient action: keep this letter with oncology records and ask the clinic coordinator about any pending or expired authorization.

@@ -1,0 +1,11 @@
+Document: Insurance Pre-authorization Letter
+Category: insurance/pre-approval
+Patient ID: patient_4
+Patient name: Synthetic Patient 4
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Insurer: Leumit Gold.
+Requested service: oncology treatment support for ABVD chemotherapy.
+Status: approved.
+Ground truth: fertility referral is missing from the chart.
+Patient action: keep this letter with oncology records and ask the clinic coordinator about any pending or expired authorization.

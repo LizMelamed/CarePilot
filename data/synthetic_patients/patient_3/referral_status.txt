@@ -1,0 +1,11 @@
+Document: Referral Status
+Category: referral
+Patient ID: patient_3
+Patient name: Synthetic Patient 3
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Referral target: pulmonary rehabilitation.
+Referral status: pending.
+Reason: care coordination for non-small cell lung cancer, stage IV.
+Ground truth: referral to pulmonary rehabilitation is pending.
+Next step: clinic coordinator should verify the referral before the next oncology appointment.

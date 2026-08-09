@@ -1,0 +1,11 @@
+Document: Insurance Pre-authorization Letter
+Category: insurance/pre-approval
+Patient ID: patient_5
+Patient name: Synthetic Patient 5
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Insurer: Clalit Shield.
+Requested service: oncology treatment support for androgen deprivation therapy plus docetaxel.
+Status: approved.
+Ground truth: docetaxel pre-approval is approved for six cycles.
+Patient action: keep this letter with oncology records and ask the clinic coordinator about any pending or expired authorization.

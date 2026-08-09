@@ -1,0 +1,306 @@
+{
+  "synthetic_data_notice": "All documents are fictional and generated for CarePilot testing only.",
+  "patient_count": 10,
+  "patients": {
+    "patient_1": {
+      "username": "patient_1",
+      "profile": {
+        "display_name": "Synthetic Patient 1",
+        "age": 54,
+        "sex": "female",
+        "gender": "woman",
+        "home_city": "Haifa",
+        "diagnosis": "breast cancer",
+        "stage": "stage II",
+        "treatment_plan": "lumpectomy followed by paclitaxel and trastuzumab",
+        "oncologist": "Dr. Leora Stein",
+        "insurer": "Clalit Shield"
+      },
+      "files": [
+        "patient_1/labs_2026_02_17.txt",
+        "patient_1/labs_2026_03_10.txt",
+        "patient_1/appointment_summary_2026_02_18.txt",
+        "patient_1/appointment_summary_2026_03_12.txt",
+        "patient_1/insurance_preauthorization.txt",
+        "patient_1/referral_status.txt",
+        "patient_1/medication_schedule.txt"
+      ],
+      "ground_truth_facts": {
+        "lab": "absolute neutrophil count fell to 1.1 K/uL on 2026-02-17",
+        "insurance": "trastuzumab pre-approval is approved through 2026-08-31",
+        "referral": "referral to cardio-oncology is submitted",
+        "medication": "trastuzumab infusion every 21 days"
+      }
+    },
+    "patient_2": {
+      "username": "patient_2",
+      "profile": {
+        "display_name": "Synthetic Patient 2",
+        "age": 67,
+        "sex": "male",
+        "gender": "man",
+        "home_city": "Tel Aviv",
+        "diagnosis": "colorectal cancer",
+        "stage": "stage III",
+        "treatment_plan": "FOLFOX chemotherapy after colectomy",
+        "oncologist": "Dr. Amir Ravid",
+        "insurer": "Maccabi Care"
+      },
+      "files": [
+        "patient_2/labs_2026_02_17.txt",
+        "patient_2/labs_2026_03_10.txt",
+        "patient_2/appointment_summary_2026_02_18.txt",
+        "patient_2/appointment_summary_2026_03_12.txt",
+        "patient_2/insurance_preauthorization.txt",
+        "patient_2/referral_status.txt",
+        "patient_2/medication_schedule.txt"
+      ],
+      "ground_truth_facts": {
+        "lab": "CEA decreased from 18.4 to 9.2 ng/mL",
+        "insurance": "oxaliplatin pre-approval is pending nurse review",
+        "referral": "referral to nutrition clinic is submitted",
+        "medication": "capecitabine tablets on days 1 through 14"
+      }
+    },
+    "patient_3": {
+      "username": "patient_3",
+      "profile": {
+        "display_name": "Synthetic Patient 3",
+        "age": 61,
+        "sex": "female",
+        "gender": "woman",
+        "home_city": "Beer Sheva",
+        "diagnosis": "non-small cell lung cancer",
+        "stage": "stage IV",
+        "treatment_plan": "pembrolizumab with carboplatin and pemetrexed",
+        "oncologist": "Dr. Noga Halevi",
+        "insurer": "Meuhedet Plus"
+      },
+      "files": [
+        "patient_3/labs_2026_02_17.txt",
+        "patient_3/labs_2026_03_10.txt",
+        "patient_3/appointment_summary_2026_02_18.txt",
+        "patient_3/appointment_summary_2026_03_12.txt",
+        "patient_3/insurance_preauthorization.txt",
+        "patient_3/referral_status.txt",
+        "patient_3/medication_schedule.txt"
+      ],
+      "ground_truth_facts": {
+        "lab": "TSH rose to 7.8 mIU/L during immunotherapy monitoring",
+        "insurance": "pembrolizumab authorization expired on 2026-03-15",
+        "referral": "referral to pulmonary rehabilitation is pending",
+        "medication": "pembrolizumab infusion every 3 weeks"
+      }
+    },
+    "patient_4": {
+      "username": "patient_4",
+      "profile": {
+        "display_name": "Synthetic Patient 4",
+        "age": 45,
+        "sex": "female",
+        "gender": "woman",
+        "home_city": "Jerusalem",
+        "diagnosis": "Hodgkin lymphoma",
+        "stage": "stage IIB",
+        "treatment_plan": "ABVD chemotherapy",
+        "oncologist": "Dr. Eyal Shamir",
+        "insurer": "Leumit Gold"
+      },
+      "files": [
+        "patient_4/labs_2026_02_17.txt",
+        "patient_4/labs_2026_03_10.txt",
+        "patient_4/appointment_summary_2026_02_18.txt",
+        "patient_4/appointment_summary_2026_03_12.txt",
+        "patient_4/insurance_preauthorization.txt",
+        "patient_4/referral_status.txt",
+        "patient_4/medication_schedule.txt"
+      ],
+      "ground_truth_facts": {
+        "lab": "hemoglobin improved to 11.2 g/dL",
+        "insurance": "fertility referral is missing from the chart",
+        "referral": "referral to fertility preservation is missing",
+        "medication": "doxorubicin and dacarbazine on ABVD cycle days"
+      }
+    },
+    "patient_5": {
+      "username": "patient_5",
+      "profile": {
+        "display_name": "Synthetic Patient 5",
+        "age": 72,
+        "sex": "male",
+        "gender": "man",
+        "home_city": "Netanya",
+        "diagnosis": "prostate cancer",
+        "stage": "stage IV",
+        "treatment_plan": "androgen deprivation therapy plus docetaxel",
+        "oncologist": "Dr. Yael Mor",
+        "insurer": "Clalit Shield"
+      },
+      "files": [
+        "patient_5/labs_2026_02_17.txt",
+        "patient_5/labs_2026_03_10.txt",
+        "patient_5/appointment_summary_2026_02_18.txt",
+        "patient_5/appointment_summary_2026_03_12.txt",
+        "patient_5/insurance_preauthorization.txt",
+        "patient_5/referral_status.txt",
+        "patient_5/medication_schedule.txt"
+      ],
+      "ground_truth_facts": {
+        "lab": "PSA dropped from 64 to 21 ng/mL",
+        "insurance": "docetaxel pre-approval is approved for six cycles",
+        "referral": "referral to urology is submitted",
+        "medication": "leuprolide depot every 12 weeks"
+      }
+    },
+    "patient_6": {
+      "username": "patient_6",
+      "profile": {
+        "display_name": "Synthetic Patient 6",
+        "age": 39,
+        "sex": "female",
+        "gender": "woman",
+        "home_city": "Ashdod",
+        "diagnosis": "ovarian cancer",
+        "stage": "stage IIIC",
+        "treatment_plan": "carboplatin and paclitaxel with planned niraparib maintenance",
+        "oncologist": "Dr. Dana Keshet",
+        "insurer": "Maccabi Care"
+      },
+      "files": [
+        "patient_6/labs_2026_02_17.txt",
+        "patient_6/labs_2026_03_10.txt",
+        "patient_6/appointment_summary_2026_02_18.txt",
+        "patient_6/appointment_summary_2026_03_12.txt",
+        "patient_6/insurance_preauthorization.txt",
+        "patient_6/referral_status.txt",
+        "patient_6/medication_schedule.txt"
+      ],
+      "ground_truth_facts": {
+        "lab": "CA-125 decreased from 410 to 188 U/mL",
+        "insurance": "BRCA testing referral is pending scheduling",
+        "referral": "referral to genetic counseling is pending",
+        "medication": "ondansetron before each chemotherapy cycle"
+      }
+    },
+    "patient_7": {
+      "username": "patient_7",
+      "profile": {
+        "display_name": "Synthetic Patient 7",
+        "age": 58,
+        "sex": "male",
+        "gender": "man",
+        "home_city": "Nazareth",
+        "diagnosis": "pancreatic cancer",
+        "stage": "stage II",
+        "treatment_plan": "modified FOLFIRINOX before surgery review",
+        "oncologist": "Dr. Ronen Gal",
+        "insurer": "Meuhedet Plus"
+      },
+      "files": [
+        "patient_7/labs_2026_02_17.txt",
+        "patient_7/labs_2026_03_10.txt",
+        "patient_7/appointment_summary_2026_02_18.txt",
+        "patient_7/appointment_summary_2026_03_12.txt",
+        "patient_7/insurance_preauthorization.txt",
+        "patient_7/referral_status.txt",
+        "patient_7/medication_schedule.txt"
+      ],
+      "ground_truth_facts": {
+        "lab": "bilirubin improved to 1.4 mg/dL after stent placement",
+        "insurance": "pegfilgrastim support was denied pending appeal",
+        "referral": "referral to hepatobiliary surgery is submitted",
+        "medication": "irinotecan and fluorouracil by infusion pump"
+      }
+    },
+    "patient_8": {
+      "username": "patient_8",
+      "profile": {
+        "display_name": "Synthetic Patient 8",
+        "age": 63,
+        "sex": "female",
+        "gender": "woman",
+        "home_city": "Acre",
+        "diagnosis": "diffuse large B-cell lymphoma",
+        "stage": "stage III",
+        "treatment_plan": "R-CHOP chemotherapy",
+        "oncologist": "Dr. Mira Oren",
+        "insurer": "Leumit Gold"
+      },
+      "files": [
+        "patient_8/labs_2026_02_17.txt",
+        "patient_8/labs_2026_03_10.txt",
+        "patient_8/appointment_summary_2026_02_18.txt",
+        "patient_8/appointment_summary_2026_03_12.txt",
+        "patient_8/insurance_preauthorization.txt",
+        "patient_8/referral_status.txt",
+        "patient_8/medication_schedule.txt"
+      ],
+      "ground_truth_facts": {
+        "lab": "LDH decreased from 620 to 390 U/L",
+        "insurance": "rituximab pre-approval is approved through cycle 6",
+        "referral": "referral to infectious disease is submitted",
+        "medication": "prednisone 100 mg on days 1 through 5"
+      }
+    },
+    "patient_9": {
+      "username": "patient_9",
+      "profile": {
+        "display_name": "Synthetic Patient 9",
+        "age": 50,
+        "sex": "male",
+        "gender": "man",
+        "home_city": "Eilat",
+        "diagnosis": "melanoma",
+        "stage": "stage III",
+        "treatment_plan": "nivolumab adjuvant immunotherapy",
+        "oncologist": "Dr. Shai Lior",
+        "insurer": "Clalit Shield"
+      },
+      "files": [
+        "patient_9/labs_2026_02_17.txt",
+        "patient_9/labs_2026_03_10.txt",
+        "patient_9/appointment_summary_2026_02_18.txt",
+        "patient_9/appointment_summary_2026_03_12.txt",
+        "patient_9/insurance_preauthorization.txt",
+        "patient_9/referral_status.txt",
+        "patient_9/medication_schedule.txt"
+      ],
+      "ground_truth_facts": {
+        "lab": "ALT increased to 86 U/L during nivolumab monitoring",
+        "insurance": "dermatology surveillance referral is missing",
+        "referral": "referral to dermatology surveillance is missing",
+        "medication": "nivolumab infusion every 4 weeks"
+      }
+    },
+    "patient_10": {
+      "username": "patient_10",
+      "profile": {
+        "display_name": "Synthetic Patient 10",
+        "age": 70,
+        "sex": "female",
+        "gender": "woman",
+        "home_city": "Tiberias",
+        "diagnosis": "multiple myeloma",
+        "stage": "R-ISS stage II",
+        "treatment_plan": "bortezomib, lenalidomide, and dexamethasone",
+        "oncologist": "Dr. Tamar Sela",
+        "insurer": "Maccabi Care"
+      },
+      "files": [
+        "patient_10/labs_2026_02_17.txt",
+        "patient_10/labs_2026_03_10.txt",
+        "patient_10/appointment_summary_2026_02_18.txt",
+        "patient_10/appointment_summary_2026_03_12.txt",
+        "patient_10/insurance_preauthorization.txt",
+        "patient_10/referral_status.txt",
+        "patient_10/medication_schedule.txt"
+      ],
+      "ground_truth_facts": {
+        "lab": "M-spike decreased from 2.9 to 1.7 g/dL",
+        "insurance": "lenalidomide authorization expired on 2026-04-01",
+        "referral": "referral to nephrology is submitted",
+        "medication": "lenalidomide 15 mg nightly on days 1 through 21"
+      }
+    }
+  }
+}

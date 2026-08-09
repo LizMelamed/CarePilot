@@ -1,0 +1,11 @@
+Document: Insurance Pre-authorization Letter
+Category: insurance/pre-approval
+Patient ID: patient_7
+Patient name: Synthetic Patient 7
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Insurer: Meuhedet Plus.
+Requested service: oncology treatment support for modified FOLFIRINOX before surgery review.
+Status: denied.
+Ground truth: pegfilgrastim support was denied pending appeal.
+Patient action: keep this letter with oncology records and ask the clinic coordinator about any pending or expired authorization.

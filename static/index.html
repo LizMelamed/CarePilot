@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarePilot</title>
+<style>
+  :root {
+    --bg: #f4f6fa;
+    --bg-inset: #eaeef4;
+    --panel: #ffffff;
+    --panel-hover: #fbfcfe;
+    --border: #dde3ec;
+    --border-strong: #c5cedc;
+    --text: #16212e;
+    --muted: #57677a;
+    --muted-2: #8493a6;
+    --accent: #2f6fed;
+    --accent-hover: #2559c9;
+    --accent-soft: #eaf1ff;
+    --accent-soft-border: #c9dcff;
+    --success: #157a4f;
+    --success-soft: #e7f7ef;
+    --error: #b3261e;
+    --error-soft: #fdecea;
+    --warn: #8a5b00;
+    --warn-soft: #fff4e0;
+    --focus-ring: #2f6fed;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --shadow-sm: 0 1px 2px rgba(20, 30, 45, 0.06);
+    --shadow-md: 0 6px 20px rgba(20, 30, 45, 0.08);
+    --shadow-lg: 0 16px 40px rgba(20, 30, 45, 0.14);
+    --sidebar-w: 248px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1521;
+      --bg-inset: #131b29;
+      --panel: #17202e;
+      --panel-hover: #1b2534;
+      --border: #263041;
+      --border-strong: #344054;
+      --text: #e8edf5;
+      --muted: #a3b0c2;
+      --muted-2: #7c8ba1;
+      --accent: #5b8dff;
+      --accent-hover: #7ba0ff;
+      --accent-soft: #182643;
+      --accent-soft-border: #2c4270;
+      --success: #4fd399;
+      --success-soft: #113226;
+      --error: #ff7a72;
+      --error-soft: #3a1817;
+      --warn: #f2c069;
+      --warn-soft: #3a2c0d;
+      --focus-ring: #7ba0ff;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.35);
+      --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4 { font-weight: 650; letter-spacing: -0.01em; }
+
+  a { color: var(--accent); }
+
+  button {
+    font-family: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 10px 18px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+    white-space: nowrap;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+
+  .btn-secondary {
+    background: var(--panel);
+    color: var(--text);
+    border-color: var(--border-strong);
+  }
+  .btn-secondary:hover:not(:disabled) { background: var(--bg-inset); }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--error);
+    border-color: transparent;
+  }
+  .btn-danger:hover:not(:disabled) { background: var(--error-soft); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border-color: transparent;
+    padding: 8px 10px;
+  }
+  .btn-ghost:hover:not(:disabled) { background: var(--bg-inset); color: var(--text); }
+
+  .btn-block { width: 100%; }
+  .btn-sm { padding: 6px 12px; font-size: 0.82rem; }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    animation: spin 0.7s linear infinite;
+    flex: none;
+  }
+  .spinner-dark {
+    border: 2px solid var(--border-strong);
+    border-top-color: var(--accent);
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- Login ---------- */
+  #view-login {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background:
+      radial-gradient(1100px 600px at 10% -10%, var(--accent-soft), transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, var(--success-soft), transparent 55%),
+      var(--bg);
+  }
+  .login-card {
+    width: 100%;
+    max-width: 400px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 36px 32px 30px;
+  }
+  .login-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+  .login-brand .logo-mark {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), #6aa0ff);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 800; font-size: 1.1rem;
+    flex: none;
+  }
+  .login-brand h1 { margin: 0; font-size: 1.25rem; }
+  .login-brand p { margin: 2px 0 0; font-size: 0.82rem; color: var(--muted); }
+
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--muted);
+  }
+  .field .hint {
+    font-size: 0.78rem;
+    color: var(--muted-2);
+    margin-top: 6px;
+  }
+  .text-input, select.text-input {
+    width: 100%;
+    padding: 11px 12px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .text-input:hover { border-color: var(--border-strong); }
+  .text-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--panel);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  .quick-users {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .chip {
+    border: 1px solid var(--border);
+    background: var(--bg-inset);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 6px 13px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .login-divider {
+    display: flex; align-items: center; gap: 10px;
+    color: var(--muted-2); font-size: 0.75rem;
+    margin: 4px 0 18px;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .login-divider::before, .login-divider::after {
+    content: ""; flex: 1; height: 1px; background: var(--border);
+  }
+
+  .login-error {
+    background: var(--error-soft);
+    color: var(--error);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .login-error.visible { display: block; }
+
+  .remember-row {
+    display: flex; align-items: center; gap: 8px;
+    margin: 14px 0 20px;
+    font-size: 0.85rem; color: var(--muted);
+  }
+  .remember-row input { width: 16px; height: 16px; accent-color: var(--accent); }
+
+  .login-footnote {
+    text-align: center;
+    font-size: 0.76rem;
+    color: var(--muted-2);
+    margin-top: 18px;
+    line-height: 1.5;
+  }
+
+  /* ---------- App shell ---------- */
+  #app {
+    display: none;
+    min-height: 100vh;
+  }
+  #app.visible { display: flex; }
+
+  .sidebar {
+    width: var(--sidebar-w);
+    flex: none;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 14px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+  .sidebar-brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 8px 20px;
+  }
+  .sidebar-brand .logo-mark {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), #6aa0ff);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 800; font-size: 0.95rem;
+    flex: none;
+  }
+  .sidebar-brand span { font-weight: 700; font-size: 1.05rem; }
+
+  .nav-group { display: flex; flex-direction: column; gap: 3px; }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    color: var(--muted);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    text-align: left;
+    width: 100%;
+  }
+  .nav-item .icon { width: 18px; height: 18px; flex: none; display: flex; }
+  .nav-item .icon svg { width: 100%; height: 100%; }
+  .nav-item:hover { background: var(--bg-inset); color: var(--text); }
+  .nav-item[aria-current="page"] {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .sidebar-user {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+  }
+  .avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.85rem;
+    flex: none;
+    border: 1px solid var(--accent-soft-border);
+  }
+  .sidebar-user .who { min-width: 0; }
+  .sidebar-user .who .name {
+    font-size: 0.85rem; font-weight: 650;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .sidebar-user .who .role { font-size: 0.74rem; color: var(--muted-2); }
+
+  .main-col {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  .topbar h2 { margin: 0; font-size: 1.15rem; }
+  .topbar p { margin: 2px 0 0; font-size: 0.83rem; color: var(--muted); }
+
+  .content {
+    flex: 1;
+    padding: 28px 32px 64px;
+    max-width: 980px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ---------- Cards / shared ---------- */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px 24px;
+    box-shadow: var(--shadow-sm);
+  }
+  .card + .card { margin-top: 20px; }
+  .card h3 {
+    margin: 0 0 4px;
+    font-size: 1rem;
+  }
+  .card .card-sub { margin: 0 0 16px; font-size: 0.85rem; color: var(--muted); }
+
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .badge-neutral { background: var(--bg-inset); color: var(--muted); }
+  .badge-success { background: var(--success-soft); color: var(--success); }
+  .badge-error { background: var(--error-soft); color: var(--error); }
+  .badge-accent { background: var(--accent-soft); color: var(--accent); }
+
+  /* ---------- Ask view ---------- */
+  .prompt-shell {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 6px;
+    box-shadow: var(--shadow-sm);
+  }
+  textarea {
+    width: 100%;
+    min-height: 110px;
+    padding: 14px 16px;
+    font-size: 0.98rem;
+    font-family: inherit;
+    color: var(--text);
+    background: transparent;
+    border: none;
+    resize: vertical;
+    line-height: 1.5;
+  }
+  textarea:focus { outline: none; }
+  textarea::placeholder { color: var(--muted-2); }
+
+  .prompt-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px 10px;
+    gap: 12px;
+  }
+  .char-count { font-size: 0.76rem; color: var(--muted-2); }
+
+  .example-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 14px 0 0;
+  }
+  .example-chip {
+    border: 1px dashed var(--border-strong);
+    background: transparent;
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 6px 13px;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+  .example-chip:hover { border-color: var(--accent); color: var(--accent); border-style: solid; }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    min-height: 20px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  section.result { margin-top: 26px; display: none; }
+  section.result.visible { display: block; }
+
+  .response-text { white-space: pre-wrap; line-height: 1.65; font-size: 0.98rem; }
+  .error-text {
+    color: var(--error);
+    background: var(--error-soft);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    white-space: pre-wrap;
+    font-size: 0.88rem;
+    margin-top: 12px;
+  }
+  .error-text:empty { display: none; }
+
+  details.step {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+    padding: 2px 14px;
+    background: var(--bg-inset);
+  }
+  details.step[open] { padding-bottom: 12px; }
+  details.step summary {
+    cursor: pointer;
+    font-weight: 650;
+    font-size: 0.88rem;
+    padding: 11px 0;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  details.step summary::-webkit-details-marker { display: none; }
+  details.step summary::before {
+    content: "";
+    width: 7px; height: 7px;
+    border-right: 2px solid var(--muted-2);
+    border-bottom: 2px solid var(--muted-2);
+    transform: rotate(-45deg);
+    transition: transform 0.15s ease;
+    flex: none;
+  }
+  details.step[open] summary::before { transform: rotate(45deg); }
+  details.step summary .order { color: var(--muted-2); font-weight: 500; margin-left: auto; font-size: 0.78rem; }
+  .step-block { margin-top: 10px; }
+  .step-block h4 {
+    margin: 0 0 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--muted-2);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .step-block pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  /* ---------- Documents view ---------- */
+  .dropzone {
+    border: 2px dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+    padding: 34px 20px;
+    text-align: center;
+    background: var(--bg-inset);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .dropzone:hover, .dropzone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .dropzone .dz-icon {
+    width: 40px; height: 40px;
+    margin: 0 auto 12px;
+    color: var(--accent);
+  }
+  .dropzone .dz-title { font-weight: 650; font-size: 0.95rem; }
+  .dropzone .dz-sub { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+  .upload-queue { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .upload-row {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    font-size: 0.84rem;
+  }
+  .upload-row .fname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .doc-list { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+  .doc-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--panel);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .doc-row:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+  .doc-icon {
+    width: 38px; height: 38px;
+    border-radius: 9px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    flex: none;
+  }
+  .doc-icon svg { width: 19px; height: 19px; }
+  .doc-meta { flex: 1; min-width: 0; }
+  .doc-meta .doc-name {
+    font-weight: 650; font-size: 0.9rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .doc-meta .doc-sub {
+    font-size: 0.78rem; color: var(--muted-2);
+    margin-top: 2px;
+    display: flex; gap: 8px; align-items: center;
+    flex-wrap: wrap;
+  }
+  .doc-actions { flex: none; }
+
+  .empty-state {
+    text-align: center;
+    padding: 44px 20px;
+    color: var(--muted);
+  }
+  .empty-state .es-icon {
+    width: 44px; height: 44px;
+    margin: 0 auto 14px;
+    color: var(--muted-2);
+  }
+  .empty-state .es-title { font-weight: 650; color: var(--text); font-size: 0.95rem; }
+  .empty-state .es-sub { font-size: 0.83rem; margin-top: 4px; }
+
+  /* ---------- Account view ---------- */
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-top: 4px;
+  }
+  .detail-item {
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+  }
+  .detail-item .dt-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted-2);
+    margin-bottom: 6px;
+  }
+  .detail-item .dt-value { font-size: 1rem; font-weight: 600; }
+  .detail-item .dt-value.muted-value { color: var(--muted-2); font-weight: 500; font-style: italic; font-size: 0.88rem; }
+
+  .account-avatar-row {
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 22px;
+  }
+  .account-avatar-row .avatar { width: 56px; height: 56px; font-size: 1.3rem; }
+  .account-avatar-row h3 { margin: 0; font-size: 1.15rem; }
+  .account-avatar-row p { margin: 2px 0 0; font-size: 0.85rem; color: var(--muted); }
+
+  /* ---------- Toasts ---------- */
+  #toast-stack {
+    position: fixed;
+    bottom: 22px;
+    right: 22px;
+    left: 22px;
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    gap: 10px;
+    z-index: 100;
+    max-height: calc(100vh - 44px);
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .toast { pointer-events: auto; }
+  .toast {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    max-width: 320px;
+    animation: toast-in 0.2s ease;
+  }
+  .toast.success { border-left-color: var(--success); }
+  .toast.error { border-left-color: var(--error); }
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---------- Modal ---------- */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(10, 15, 25, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 90;
+    padding: 20px;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal {
+    background: var(--panel);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 24px;
+    max-width: 380px;
+    width: 100%;
+  }
+  .modal h3 { margin: 0 0 8px; font-size: 1.05rem; }
+  .modal p { margin: 0 0 20px; font-size: 0.88rem; color: var(--muted); line-height: 1.5; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+  /* ---------- Mobile nav ---------- */
+  .mobile-topbar { display: none; }
+  .mobile-nav { display: none; }
+
+  @media (max-width: 860px) {
+    .sidebar { display: none; }
+    .mobile-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 6;
+    }
+    .mobile-nav {
+      display: flex;
+      gap: 4px;
+      padding: 8px 12px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+    .mobile-nav .nav-item { width: auto; white-space: nowrap; }
+    .topbar { padding: 16px 18px; }
+    .content { padding: 20px 16px 48px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN VIEW ===================== -->
+<div id="view-login">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="logo-mark">CP</div>
+      <div>
+        <h1>CarePilot</h1>
+        <p>Sign in to your patient workspace</p>
+      </div>
+    </div>
+
+    <div class="login-error" id="login-error" role="alert"></div>
+
+    <div id="quick-users-wrap" style="display:none;">
+      <label style="display:block; font-size:0.82rem; font-weight:600; margin-bottom:8px; color:var(--muted);">Known patients</label>
+      <div class="quick-users" id="quick-users"></div>
+      <div class="login-divider">or enter a patient ID</div>
+    </div>
+
+    <form id="login-form">
+      <div class="field">
+        <label for="login-username">Patient ID</label>
+        <input class="text-input" id="login-username" name="username" type="text" placeholder="e.g. patient_1" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="login-password">Password</label>
+        <input class="text-input" id="login-password" name="password" type="password" placeholder="••••••••" autocomplete="current-password">
+        <p class="hint">CarePilot is running in demo mode: identity is established by patient ID, so any password is accepted.</p>
+      </div>
+      <div class="remember-row">
+        <input type="checkbox" id="login-remember" checked>
+        <label for="login-remember">Stay signed in on this device</label>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="login-submit">
+        <span id="login-submit-label">Sign in</span>
+      </button>
+    </form>
+
+    <p class="login-footnote">Your identity determines which patient records CarePilot can read while answering your questions.</p>
+  </div>
+</div>
+
+<!-- ===================== APP SHELL ===================== -->
+<div id="app">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo-mark">CP</div>
+      <span>CarePilot</span>
+    </div>
+    <nav class="nav-group" aria-label="Primary">
+      <button class="nav-item" data-view="ask" aria-current="page">
+        <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+        Ask CarePilot
+      </button>
+      <button class="nav-item" data-view="documents">
+        <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span>
+        My Documents
+      </button>
+      <button class="nav-item" data-view="account">
+        <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg></span>
+        Account
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar" id="sidebar-avatar">P</div>
+        <div class="who">
+          <div class="name" id="sidebar-username">—</div>
+          <div class="role">Patient</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-block" id="logout-btn" style="margin-top:6px; justify-content:flex-start;">
+        <span class="icon" aria-hidden="true" style="width:16px;height:16px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span>
+        Sign out
+      </button>
+    </div>
+  </aside>
+
+  <div class="main-col">
+    <div class="mobile-topbar">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div class="logo-mark" style="width:28px;height:28px;font-size:0.8rem;">CP</div>
+        <strong>CarePilot</strong>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="logout-btn-mobile">Sign out</button>
+    </div>
+    <nav class="mobile-nav" aria-label="Primary">
+      <button class="nav-item" data-view="ask" aria-current="page">Ask</button>
+      <button class="nav-item" data-view="documents">Documents</button>
+      <button class="nav-item" data-view="account">Account</button>
+    </nav>
+
+    <header class="topbar">
+      <div>
+        <h2 id="topbar-title">Ask CarePilot</h2>
+        <p id="topbar-sub">Get grounded answers from your records and clinical references.</p>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- ---- Ask view ---- -->
+      <section class="view active" id="view-ask">
+        <div class="prompt-shell">
+          <label for="prompt-input" class="visually-hidden">Your question</label>
+          <textarea id="prompt-input" placeholder="e.g. I have a checkup tomorrow, help me prepare."></textarea>
+          <div class="prompt-toolbar">
+            <span class="char-count" id="char-count">0 characters</span>
+            <button class="btn btn-primary" id="run-button">
+              <span id="run-button-label">Run Agent</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="example-chips">
+          <button class="example-chip" data-example="I have a checkup tomorrow, help me prepare.">Prep for a checkup</button>
+          <button class="example-chip" data-example="What's the status of my cardio-oncology referral?">Referral status</button>
+          <button class="example-chip" data-example="Summarize my most recent lab results in plain language.">Summarize recent labs</button>
+          <button class="example-chip" data-example="Draft a message to my care coordinator about rescheduling.">Draft a message</button>
+        </div>
+
+        <div class="status-row" id="status-row" aria-live="polite">
+          <span id="status-text"></span>
+        </div>
+
+        <section class="result" id="result-section">
+          <div class="card">
+            <h3>Response</h3>
+            <p class="card-sub">Safety-checked before being shown to you.</p>
+            <div class="response-text" id="response-text"></div>
+            <div class="error-text" id="error-text"></div>
+          </div>
+          <div class="card">
+            <h3>Reasoning steps</h3>
+            <p class="card-sub">How CarePilot planned, executed, and verified this answer.</p>
+            <div id="steps-container"></div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ---- Documents view ---- -->
+      <section class="view" id="view-documents">
+        <div class="card">
+          <h3>Upload a document</h3>
+          <p class="card-sub">Lab results, referral letters, insurance forms, and other records CarePilot can reference when answering you.</p>
+
+          <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload a document">
+            <div class="dz-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <div class="dz-title">Drag &amp; drop files here, or click to browse</div>
+            <div class="dz-sub">Text, PDF, and common document formats</div>
+            <input type="file" id="file-input" multiple style="display:none;">
+          </div>
+
+          <div class="upload-queue" id="upload-queue"></div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+            <div>
+              <h3>Your documents</h3>
+              <p class="card-sub" style="margin-bottom:0;">Files CarePilot can search when answering your questions.</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="refresh-docs-btn">Refresh</button>
+          </div>
+          <div id="documents-status" style="margin-top:14px;"></div>
+          <div class="doc-list" id="doc-list"></div>
+        </div>
+      </section>
+
+      <!-- ---- Account view ---- -->
+      <section class="view" id="view-account">
+        <div class="card">
+          <div class="account-avatar-row">
+            <div class="avatar" id="account-avatar">P</div>
+            <div>
+              <h3 id="account-username">—</h3>
+              <p>Signed in patient identity</p>
+            </div>
+          </div>
+          <div id="account-status"></div>
+          <div class="detail-grid" id="account-details"></div>
+        </div>
+
+        <div class="card">
+          <h3>Session</h3>
+          <p class="card-sub">You're signed in on this device.</p>
+          <button class="btn btn-danger" id="logout-btn-2">Sign out</button>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ===================== Delete confirm modal ===================== -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+    <h3 id="delete-modal-title">Delete document?</h3>
+    <p id="delete-modal-body">This will permanently remove the file from your records.</p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="delete-cancel-btn">Cancel</button>
+      <button class="btn btn-danger" id="delete-confirm-btn" style="background:var(--error); color:#fff;">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-stack" aria-live="polite"></div>
+
+<script>
+const STORAGE_KEY = 'carepilot_username';
+const SESSION_KEY = 'carepilot_username_session';
+
+/* ---------- Utilities ---------- */
+function escapeHtml(value) {
+  const div = document.createElement('div');
+  div.textContent = value == null ? '' : String(value);
+  return div.innerHTML;
+}
+
+function getUsername() {
+  return localStorage.getItem(STORAGE_KEY) || sessionStorage.getItem(SESSION_KEY);
+}
+
+function setUsername(username, remember) {
+  localStorage.removeItem(STORAGE_KEY);
+  sessionStorage.removeItem(SESSION_KEY);
+  if (remember) {
+    localStorage.setItem(STORAGE_KEY, username);
+  } else {
+    sessionStorage.setItem(SESSION_KEY, username);
+  }
+}
+
+function clearUsername() {
+  localStorage.removeItem(STORAGE_KEY);
+  sessionStorage.removeItem(SESSION_KEY);
+}
+
+function authHeaders(extra) {
+  return Object.assign({ 'X-CarePilot-Username': getUsername() || '' }, extra || {});
+}
+
+function initials(name) {
+  if (!name) return '?';
+  return name.replace(/[_-]+/g, ' ').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+}
+
+function formatBytes(chars) {
+  if (chars == null) return null;
+  if (chars < 1000) return `${chars} chars`;
+  return `${(chars / 1000).toFixed(1)}k chars`;
+}
+
+const MAX_VISIBLE_TOASTS = 4;
+let toastId = 0;
+function showToast(message, kind) {
+  const stack = document.getElementById('toast-stack');
+  const el = document.createElement('div');
+  const id = ++toastId;
+  el.className = `toast ${kind || ''}`.trim();
+  el.textContent = message;
+  el.dataset.id = id;
+  stack.appendChild(el);
+  while (stack.children.length > MAX_VISIBLE_TOASTS) {
+    stack.removeChild(stack.firstElementChild);
+  }
+  setTimeout(() => {
+    el.style.transition = 'opacity 0.25s ease';
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 250);
+  }, 4200);
+}
+
+/* ---------- Login ---------- */
+const loginView = document.getElementById('view-login');
+const appView = document.getElementById('app');
+const loginForm = document.getElementById('login-form');
+const loginUsernameInput = document.getElementById('login-username');
+const loginRememberInput = document.getElementById('login-remember');
+const loginError = document.getElementById('login-error');
+const loginSubmitBtn = document.getElementById('login-submit');
+const loginSubmitLabel = document.getElementById('login-submit-label');
+const quickUsersWrap = document.getElementById('quick-users-wrap');
+const quickUsers = document.getElementById('quick-users');
+
+async function loadQuickUsers() {
+  try {
+    const res = await fetch('/api/users');
+    if (!res.ok) return;
+    const data = await res.json();
+    const users = Array.isArray(data.users) ? data.users : [];
+    if (users.length === 0) return;
+    quickUsers.innerHTML = '';
+    users.forEach((u) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip';
+      chip.textContent = u;
+      chip.setAttribute('aria-pressed', 'false');
+      chip.addEventListener('click', () => {
+        loginUsernameInput.value = u;
+        Array.from(quickUsers.children).forEach(c => c.setAttribute('aria-pressed', String(c === chip)));
+        loginUsernameInput.focus();
+      });
+      quickUsers.appendChild(chip);
+    });
+    quickUsersWrap.style.display = '';
+  } catch {
+    /* quick-select is a convenience only */
+  }
+}
+
+loginForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const username = loginUsernameInput.value.trim();
+  if (!username) return;
+  loginError.classList.remove('visible');
+  loginSubmitBtn.disabled = true;
+  loginSubmitBtn.innerHTML = '';
+  const spinner = document.createElement('span');
+  spinner.className = 'spinner';
+  loginSubmitBtn.appendChild(spinner);
+  loginSubmitBtn.appendChild(document.createTextNode(' Signing in…'));
+
+  setUsername(username, loginRememberInput.checked);
+  try {
+    await enterApp(username);
+  } catch (err) {
+    loginError.textContent = 'Could not sign in: ' + err.message;
+    loginError.classList.add('visible');
+    clearUsername();
+  } finally {
+    loginSubmitBtn.disabled = false;
+    loginSubmitBtn.innerHTML = '<span id="login-submit-label">Sign in</span>';
+  }
+});
+
+function showLogin() {
+  loginView.style.display = 'flex';
+  appView.classList.remove('visible');
+  loadQuickUsers();
+}
+
+/* ---------- Navigation ---------- */
+const views = {
+  ask: { title: 'Ask CarePilot', sub: 'Get grounded answers from your records and clinical references.' },
+  documents: { title: 'My Documents', sub: 'Upload and manage the records CarePilot can reference.' },
+  account: { title: 'Account', sub: 'Your signed-in patient identity.' },
+};
+
+function setActiveView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === `view-${name}`));
+  document.querySelectorAll('.nav-item[data-view]').forEach(btn => {
+    const active = btn.dataset.view === name;
+    if (active) btn.setAttribute('aria-current', 'page'); else btn.removeAttribute('aria-current');
+  });
+  document.getElementById('topbar-title').textContent = views[name].title;
+  document.getElementById('topbar-sub').textContent = views[name].sub;
+  if (name === 'documents') loadDocuments();
+  if (name === 'account') loadAccount();
+  if (location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
+  window.scrollTo(0, 0);
+}
+
+document.querySelectorAll('.nav-item[data-view]').forEach(btn => {
+  btn.addEventListener('click', () => setActiveView(btn.dataset.view));
+});
+
+/* ---------- Enter app / sign out ---------- */
+async function enterApp(username) {
+  document.getElementById('sidebar-username').textContent = username;
+  document.getElementById('sidebar-avatar').textContent = initials(username);
+  loginView.style.display = 'none';
+  appView.classList.add('visible');
+  const requested = location.hash.replace('#', '');
+  setActiveView(views[requested] ? requested : 'ask');
+}
+
+function signOut() {
+  clearUsername();
+  document.getElementById('result-section').classList.remove('visible');
+  document.getElementById('prompt-input').value = '';
+  showLogin();
+}
+
+['logout-btn', 'logout-btn-mobile', 'logout-btn-2'].forEach(id => {
+  document.getElementById(id).addEventListener('click', signOut);
+});
+
+/* ---------- Ask view ---------- */
+const runButton = document.getElementById('run-button');
+const runButtonLabel = document.getElementById('run-button-label');
+const promptInput = document.getElementById('prompt-input');
+const statusText = document.getElementById('status-text');
+const charCount = document.getElementById('char-count');
+const resultSection = document.getElementById('result-section');
+const responseText = document.getElementById('response-text');
+const errorText = document.getElementById('error-text');
+const stepsContainer = document.getElementById('steps-container');
+
+promptInput.addEventListener('input', () => {
+  const n = promptInput.value.length;
+  charCount.textContent = `${n} character${n === 1 ? '' : 's'}`;
+});
+
+document.querySelectorAll('.example-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    promptInput.value = chip.dataset.example;
+    promptInput.dispatchEvent(new Event('input'));
+    promptInput.focus();
+  });
+});
+
+function renderSteps(steps) {
+  stepsContainer.innerHTML = '';
+  if (!steps || steps.length === 0) {
+    stepsContainer.innerHTML = '<p class="card-sub" style="margin:0;">No steps recorded.</p>';
+    return;
+  }
+  steps.forEach((step, index) => {
+    const details = document.createElement('details');
+    details.className = 'step';
+    const order = step.step_order != null ? step.step_order : index + 1;
+    details.innerHTML = `
+      <summary>${escapeHtml(step.module || 'Step')}<span class="order">Step ${escapeHtml(order)}</span></summary>
+      <div class="step-block">
+        <h4>System prompt</h4>
+        <pre>${escapeHtml(step.system_prompt)}</pre>
+      </div>
+      <div class="step-block">
+        <h4>User prompt</h4>
+        <pre>${escapeHtml(step.user_prompt)}</pre>
+      </div>
+      <div class="step-block">
+        <h4>Response</h4>
+        <pre>${escapeHtml(step.response)}</pre>
+      </div>
+    `;
+    stepsContainer.appendChild(details);
+  });
+}
+
+function setRunning(isRunning) {
+  runButton.disabled = isRunning;
+  runButtonLabel.innerHTML = '';
+  if (isRunning) {
+    const spinner = document.createElement('span');
+    spinner.className = 'spinner';
+    runButtonLabel.appendChild(spinner);
+    runButtonLabel.appendChild(document.createTextNode(' Running…'));
+  } else {
+    runButtonLabel.textContent = 'Run Agent';
+  }
+}
+
+async function runAgent() {
+  const prompt = promptInput.value.trim();
+  if (!prompt) {
+    statusText.textContent = 'Enter a prompt first.';
+    promptInput.focus();
+    return;
+  }
+  setRunning(true);
+  statusText.textContent = 'Planning, executing, and safety-checking your answer…';
+  resultSection.classList.remove('visible');
+  errorText.textContent = '';
+
+  try {
+    const res = await fetch('/api/execute', {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ prompt }),
+    });
+    const rawBody = await res.text();
+    let data;
+    try {
+      data = JSON.parse(rawBody);
+    } catch {
+      throw new Error(`Server returned ${res.status}: ${rawBody.slice(0, 200)}`);
+    }
+    responseText.textContent = data.response || '';
+    errorText.textContent = data.status === 'error' ? (data.error || 'An error occurred.') : '';
+    renderSteps(data.steps);
+    resultSection.classList.add('visible');
+    statusText.textContent = data.status === 'error' ? 'Completed with an error.' : 'Done.';
+  } catch (err) {
+    errorText.textContent = 'Request failed: ' + err.message;
+    resultSection.classList.add('visible');
+    statusText.textContent = 'Request failed.';
+  } finally {
+    setRunning(false);
+  }
+}
+
+runButton.addEventListener('click', runAgent);
+promptInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+    runAgent();
+  }
+});
+
+/* ---------- Documents view ---------- */
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('file-input');
+const uploadQueue = document.getElementById('upload-queue');
+const docList = document.getElementById('doc-list');
+const documentsStatus = document.getElementById('documents-status');
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+});
+['dragenter', 'dragover'].forEach(evt => {
+  dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+});
+['dragleave', 'drop'].forEach(evt => {
+  dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); });
+});
+dropzone.addEventListener('drop', (e) => {
+  const files = e.dataTransfer && e.dataTransfer.files;
+  if (files && files.length) uploadFiles(files);
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files && fileInput.files.length) uploadFiles(fileInput.files);
+  fileInput.value = '';
+});
+
+function docIconSvg() {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
+}
+
+async function uploadFiles(fileList) {
+  const files = Array.from(fileList);
+  for (const file of files) {
+    const row = document.createElement('div');
+    row.className = 'upload-row';
+    row.innerHTML = `<span class="spinner spinner-dark"></span><span class="fname">${escapeHtml(file.name)}</span><span class="badge badge-neutral">Uploading</span>`;
+    uploadQueue.appendChild(row);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file, file.name);
+      const res = await fetch('/api/documents', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: formData,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || `Upload failed (${res.status})`);
+      row.querySelector('.spinner').remove();
+      if (data.error) {
+        row.querySelector('.badge').outerHTML = '<span class="badge badge-accent">Uploaded</span>';
+        showToast(`${file.name} uploaded, but indexing had an issue: ${data.error}`, 'error');
+      } else {
+        row.querySelector('.badge').outerHTML = '<span class="badge badge-success">Uploaded</span>';
+        showToast(`${file.name} uploaded.`, 'success');
+      }
+    } catch (err) {
+      row.querySelector('.spinner') && row.querySelector('.spinner').remove();
+      row.querySelector('.badge').outerHTML = '<span class="badge badge-error">Failed</span>';
+      showToast(`Could not upload ${file.name}: ${err.message}`, 'error');
+    } finally {
+      setTimeout(() => { row.style.transition = 'opacity 0.3s'; row.style.opacity = '0'; setTimeout(() => row.remove(), 300); }, 3000);
+    }
+  }
+  loadDocuments();
+}
+
+async function loadDocuments() {
+  documentsStatus.innerHTML = '<span class="card-sub" style="display:flex; align-items:center; gap:8px;"><span class="spinner spinner-dark"></span> Loading documents…</span>';
+  docList.innerHTML = '';
+  try {
+    const res = await fetch('/api/documents', { headers: authHeaders() });
+    if (!res.ok) throw new Error(`Server returned ${res.status}`);
+    const data = await res.json();
+    const documents = Array.isArray(data.documents) ? data.documents : [];
+    documentsStatus.innerHTML = '';
+    if (documents.length === 0) {
+      docList.innerHTML = `
+        <div class="empty-state">
+          <div class="es-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+          <div class="es-title">No documents yet</div>
+          <div class="es-sub">Upload a file above to get started.</div>
+        </div>`;
+      return;
+    }
+    documents.forEach(doc => {
+      const row = document.createElement('div');
+      row.className = 'doc-row';
+      const sizeLabel = formatBytes(doc.size_chars);
+      row.innerHTML = `
+        <div class="doc-icon" aria-hidden="true">${docIconSvg()}</div>
+        <div class="doc-meta">
+          <div class="doc-name">${escapeHtml(doc.file_name)}</div>
+          <div class="doc-sub">
+            ${sizeLabel ? `<span>${escapeHtml(sizeLabel)}</span>` : ''}
+          </div>
+        </div>
+        <div class="doc-actions">
+          <button class="btn btn-ghost btn-sm delete-doc-btn" data-name="${escapeHtml(doc.file_name)}" aria-label="Delete ${escapeHtml(doc.file_name)}">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </button>
+        </div>
+      `;
+      docList.appendChild(row);
+    });
+    docList.querySelectorAll('.delete-doc-btn').forEach(btn => {
+      btn.addEventListener('click', () => confirmDeleteDocument(btn.dataset.name));
+    });
+  } catch (err) {
+    documentsStatus.innerHTML = `<span class="error-text" style="margin-top:0;">Could not load documents: ${escapeHtml(err.message)}</span>`;
+  }
+}
+
+document.getElementById('refresh-docs-btn').addEventListener('click', loadDocuments);
+
+const deleteModal = document.getElementById('delete-modal');
+const deleteModalBody = document.getElementById('delete-modal-body');
+let pendingDeleteName = null;
+
+function confirmDeleteDocument(fileName) {
+  pendingDeleteName = fileName;
+  deleteModalBody.textContent = `"${fileName}" will be permanently removed from your records. This cannot be undone.`;
+  deleteModal.classList.add('visible');
+}
+
+document.getElementById('delete-cancel-btn').addEventListener('click', () => {
+  deleteModal.classList.remove('visible');
+  pendingDeleteName = null;
+});
+deleteModal.addEventListener('click', (e) => {
+  if (e.target === deleteModal) { deleteModal.classList.remove('visible'); pendingDeleteName = null; }
+});
+
+document.getElementById('delete-confirm-btn').addEventListener('click', async () => {
+  if (!pendingDeleteName) return;
+  const name = pendingDeleteName;
+  deleteModal.classList.remove('visible');
+  try {
+    const res = await fetch(`/api/documents/${encodeURIComponent(name)}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || `Server returned ${res.status}`);
+    showToast(`${name} deleted.`, 'success');
+    loadDocuments();
+  } catch (err) {
+    showToast(`Could not delete ${name}: ${err.message}`, 'error');
+  } finally {
+    pendingDeleteName = null;
+  }
+});
+
+/* ---------- Account view ---------- */
+const accountStatus = document.getElementById('account-status');
+const accountDetails = document.getElementById('account-details');
+
+function detailItem(label, value) {
+  const hasValue = value !== null && value !== undefined && value !== '';
+  return `
+    <div class="detail-item">
+      <div class="dt-label">${escapeHtml(label)}</div>
+      <div class="dt-value ${hasValue ? '' : 'muted-value'}">${hasValue ? escapeHtml(value) : 'Not on file'}</div>
+    </div>`;
+}
+
+async function loadAccount() {
+  const username = getUsername();
+  document.getElementById('account-username').textContent = username || '—';
+  document.getElementById('account-avatar').textContent = initials(username);
+  accountStatus.innerHTML = '<p class="card-sub" style="display:flex; align-items:center; gap:8px;"><span class="spinner spinner-dark"></span> Loading profile…</p>';
+  accountDetails.innerHTML = '';
+
+  try {
+    const res = await fetch('/api/patients/me', { headers: authHeaders() });
+    if (res.status === 404) {
+      accountStatus.innerHTML = '<p class="card-sub" style="margin-bottom:0;">No patient profile is on file for this ID yet. You can still ask questions and upload documents.</p>';
+      accountDetails.innerHTML = detailItem('Patient ID', username) + detailItem('Date of birth', null) + detailItem('Gender', null) + detailItem('Sex', null);
+      return;
+    }
+    if (!res.ok) throw new Error(`Server returned ${res.status}`);
+    const data = await res.json();
+    accountStatus.innerHTML = '';
+    accountDetails.innerHTML =
+      detailItem('Patient ID', data.username) +
+      detailItem('Date of birth', data.date_of_birth) +
+      detailItem('Gender', data.gender) +
+      detailItem('Sex', data.sex);
+  } catch (err) {
+    accountStatus.innerHTML = `<span class="error-text" style="margin-top:0;">Could not load profile: ${escapeHtml(err.message)}</span>`;
+  }
+}
+
+/* ---------- Boot ---------- */
+(function boot() {
+  const existing = getUsername();
+  if (existing) {
+    enterApp(existing);
+  } else {
+    showLogin();
+  }
+})();
+</script>
+</body>
+</html>

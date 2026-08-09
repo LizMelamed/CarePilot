@@ -26,7 +26,11 @@ class Embedder(metaclass=SingletonMeta):
         self._embeddings = OpenAIEmbeddings(
             api_key=api_key,
             base_url=url,
-            model=model
+            model=model,
+            # Ollama's OpenAI-compatible embeddings endpoint only accepts raw text input.
+            # Without this, langchain pre-tokenizes text into integer token arrays via
+            # tiktoken (valid for real OpenAI), which Ollama rejects as "invalid input type".
+            check_embedding_ctx_length=False,
         )
         """The Embedder object used to generate vector embeddings."""
         self._logger.info(f"Embedder initialized.")

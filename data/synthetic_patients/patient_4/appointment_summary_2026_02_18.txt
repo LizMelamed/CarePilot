@@ -1,0 +1,11 @@
+Document: Oncology Appointment Summary 2026-02-18
+Category: appointment summary
+Patient ID: patient_4
+Patient name: Synthetic Patient 4
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Clinician: Dr. Eyal Shamir.
+Assessment: Synthetic Patient 4 is being treated for Hodgkin lymphoma, stage IIB.
+Treatment plan: ABVD chemotherapy.
+Symptoms discussed: fatigue, appetite changes, and questions about appointment timing.
+Next steps: continue current plan, repeat labs before the next cycle, and call urgently for fever or worsening symptoms.

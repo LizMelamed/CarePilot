@@ -1,0 +1,11 @@
+Document: Referral Status
+Category: referral
+Patient ID: patient_7
+Patient name: Synthetic Patient 7
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Referral target: hepatobiliary surgery.
+Referral status: submitted.
+Reason: care coordination for pancreatic cancer, stage II.
+Ground truth: referral to hepatobiliary surgery is submitted.
+Next step: clinic coordinator should verify the referral before the next oncology appointment.

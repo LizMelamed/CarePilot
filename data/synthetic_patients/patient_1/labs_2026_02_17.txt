@@ -1,0 +1,10 @@
+Document: Laboratory Results 2026-02-17
+Category: lab/results
+Patient ID: patient_1
+Patient name: Synthetic Patient 1
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Diagnosis context: breast cancer, stage II.
+CBC: WBC 2.4 K/uL, ANC 1.1 K/uL, hemoglobin 10.8 g/dL, platelets 142 K/uL.
+Chemistry: creatinine 0.9 mg/dL, AST 28 U/L, ALT 31 U/L.
+Plain annotation: absolute neutrophil count fell to 1.1 K/uL on 2026-02-17. Oncology team should review infection precautions and treatment timing.

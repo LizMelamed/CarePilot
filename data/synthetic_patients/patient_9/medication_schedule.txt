@@ -1,0 +1,10 @@
+Document: Medication List and Schedule
+Category: medication records
+Patient ID: patient_9
+Patient name: Synthetic Patient 9
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Primary regimen: nivolumab adjuvant immunotherapy.
+Key medication fact: nivolumab infusion every 4 weeks.
+Supportive medications: ondansetron 8 mg as needed for nausea, polyethylene glycol as needed for constipation, acetaminophen only after checking temperature.
+Safety note: this is synthetic test data; medication details are plausible but not medical advice.

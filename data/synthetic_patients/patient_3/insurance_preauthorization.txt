@@ -1,0 +1,11 @@
+Document: Insurance Pre-authorization Letter
+Category: insurance/pre-approval
+Patient ID: patient_3
+Patient name: Synthetic Patient 3
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Insurer: Meuhedet Plus.
+Requested service: oncology treatment support for pembrolizumab with carboplatin and pemetrexed.
+Status: expired.
+Ground truth: pembrolizumab authorization expired on 2026-03-15.
+Patient action: keep this letter with oncology records and ask the clinic coordinator about any pending or expired authorization.

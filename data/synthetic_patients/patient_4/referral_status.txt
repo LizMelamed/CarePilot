@@ -1,0 +1,11 @@
+Document: Referral Status
+Category: referral
+Patient ID: patient_4
+Patient name: Synthetic Patient 4
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Referral target: fertility preservation.
+Referral status: missing.
+Reason: care coordination for Hodgkin lymphoma, stage IIB.
+Ground truth: referral to fertility preservation is missing.
+Next step: clinic coordinator should verify the referral before the next oncology appointment.

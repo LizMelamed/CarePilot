@@ -1,0 +1,11 @@
+Document: Insurance Pre-authorization Letter
+Category: insurance/pre-approval
+Patient ID: patient_10
+Patient name: Synthetic Patient 10
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Insurer: Maccabi Care.
+Requested service: oncology treatment support for bortezomib, lenalidomide, and dexamethasone.
+Status: expired.
+Ground truth: lenalidomide authorization expired on 2026-04-01.
+Patient action: keep this letter with oncology records and ask the clinic coordinator about any pending or expired authorization.

@@ -1,0 +1,10 @@
+Document: Laboratory Results 2026-03-10
+Category: lab/results
+Patient ID: patient_9
+Patient name: Synthetic Patient 9
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Diagnosis context: melanoma, stage III.
+CBC: WBC 3.1 K/uL, ANC 1.6 K/uL, hemoglobin 11.0 g/dL, platelets 166 K/uL.
+Tumor marker or disease marker: ALT increased to 86 U/L during nivolumab monitoring.
+Plain annotation: values are plausible synthetic monitoring data for retrieval testing.

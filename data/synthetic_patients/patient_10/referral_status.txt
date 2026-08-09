@@ -1,0 +1,11 @@
+Document: Referral Status
+Category: referral
+Patient ID: patient_10
+Patient name: Synthetic Patient 10
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Referral target: nephrology.
+Referral status: submitted.
+Reason: care coordination for multiple myeloma, R-ISS stage II.
+Ground truth: referral to nephrology is submitted.
+Next step: clinic coordinator should verify the referral before the next oncology appointment.

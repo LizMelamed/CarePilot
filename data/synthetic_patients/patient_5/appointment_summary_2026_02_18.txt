@@ -1,0 +1,11 @@
+Document: Oncology Appointment Summary 2026-02-18
+Category: appointment summary
+Patient ID: patient_5
+Patient name: Synthetic Patient 5
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Clinician: Dr. Yael Mor.
+Assessment: Synthetic Patient 5 is being treated for prostate cancer, stage IV.
+Treatment plan: androgen deprivation therapy plus docetaxel.
+Symptoms discussed: fatigue, appetite changes, and questions about appointment timing.
+Next steps: continue current plan, repeat labs before the next cycle, and call urgently for fever or worsening symptoms.

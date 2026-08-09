@@ -1,1 +1,7 @@
 /res/configs/.env
+/data/clinical_corpus/*
+!/data/clinical_corpus/.gitkeep
+!/data/clinical_corpus/README.md
+/data/local_db/
+/data/faiss/
+__pycache__

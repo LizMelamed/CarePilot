@@ -2,8 +2,16 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from markitdown import MarkItDown
+try:
+    from markitdown import MarkItDown
+except ImportError:
+    MarkItDown = None
 
+from src.db.chunking import (
+    MEDICAL_CHUNK_OVERLAP,
+    MEDICAL_CHUNK_SEPARATORS,
+    MEDICAL_CHUNK_SIZE,
+)
 from src.utils.my_env import MyEnv
 from src.utils.logger import Logger
 from src.utils.singleton import SingletonMeta
@@ -26,19 +34,14 @@ class DBHandler(ABC):
 
         self._logger.info("Initializing database object...")
         self._db = self._generate_db_object(url=url, auth_token=auth_token)
+        if MarkItDown is None:
+            raise ImportError("markitdown is required to instantiate DBHandler")
         self._md = MarkItDown()
 
         self._medical_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=3500,  # ~875 tokens
-            chunk_overlap=600,  # ~150 tokens (~17% margin)
-            separators=[
-                "\n# ",
-                "\n## ",
-                "\n\n",
-                "\n",
-                ". ",
-                " "
-            ])
+            chunk_size=MEDICAL_CHUNK_SIZE,  # ~875 tokens
+            chunk_overlap=MEDICAL_CHUNK_OVERLAP,  # ~150 tokens (~17% margin)
+            separators=MEDICAL_CHUNK_SEPARATORS)
         """The splitter used for chunkifying medical documents."""
         self._logger.info("Database object initialized.")
 
@@ -118,6 +121,20 @@ class DBHandler(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    async def get_patient_documents(
+            self,
+            username: str,
+            limit: int = 10,
+    ) -> list[dict[str, Any]]:
+        """
+        Read patient documents from DB rows without vector retrieval.
+        :param username: identifying name of the patient that owns the files.
+        :param limit: maximum number of documents to return.
+        :return: document records.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     async def query_file(self, username: str, query: str, top_k: int) -> List[tuple[str, str, str]]:
         """
         Query for files in the database that are owned by the user.
@@ -148,3 +165,54 @@ class DBHandler(ABC):
         :return: a list of usernames.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    async def save_execution(
+            self,
+            username_or_session: str,
+            prompt: str,
+            final_response: str | None,
+            status: str,
+            steps: list[dict[str, Any]],
+            error: str | None = None,
+    ) -> str | None:
+        """
+        Save one API execution and its step trace.
+        :param username_or_session: authenticated username or anonymous session id.
+        :param prompt: raw user prompt.
+        :param final_response: final answer returned to the user, if any.
+        :param status: execution status.
+        :param steps: ordered step trace dictionaries.
+        :param error: error text, if execution failed.
+        :return: saved execution id, otherwise None.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_execution_history(
+            self,
+            username_or_session: str,
+            limit: int = 10,
+    ) -> list[dict[str, Any]]:
+        """
+        Read recent executions and their steps for one username or session.
+        :param username_or_session: authenticated username or anonymous session id.
+        :param limit: maximum number of executions to return.
+        :return: execution records newest-first, each with a steps list.
+        """
+        raise NotImplementedError
+
+
+def get_db_handler() -> "DBHandler":
+    """Return the configured DB handler. DB_BACKEND=sqlite|supabase, defaults to local sqlite."""
+
+    backend = (MyEnv.get("DB_BACKEND") or "sqlite").lower()
+    if backend == "sqlite":
+        from src.db.sqlite_handler import SqliteHandler
+
+        return SqliteHandler()
+    if backend == "supabase":
+        from src.db.supabase_handler import SupabaseHandler
+
+        return SupabaseHandler()
+    raise ValueError(f"Unsupported DB_BACKEND: {backend}")

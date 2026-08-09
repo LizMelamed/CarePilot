@@ -1,0 +1,10 @@
+Document: Laboratory Results 2026-03-10
+Category: lab/results
+Patient ID: patient_10
+Patient name: Synthetic Patient 10
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Diagnosis context: multiple myeloma, R-ISS stage II.
+CBC: WBC 3.1 K/uL, ANC 1.6 K/uL, hemoglobin 11.0 g/dL, platelets 166 K/uL.
+Tumor marker or disease marker: M-spike decreased from 2.9 to 1.7 g/dL.
+Plain annotation: values are plausible synthetic monitoring data for retrieval testing.

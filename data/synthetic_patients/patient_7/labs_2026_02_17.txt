@@ -1,0 +1,10 @@
+Document: Laboratory Results 2026-02-17
+Category: lab/results
+Patient ID: patient_7
+Patient name: Synthetic Patient 7
+Synthetic data notice: This file is fictional test data only. It contains no real patient information and no SSN.
+
+Diagnosis context: pancreatic cancer, stage II.
+CBC: WBC 2.4 K/uL, ANC 1.1 K/uL, hemoglobin 10.8 g/dL, platelets 142 K/uL.
+Chemistry: creatinine 0.9 mg/dL, AST 28 U/L, ALT 31 U/L.
+Plain annotation: bilirubin improved to 1.4 mg/dL after stent placement. Oncology team should review infection precautions and treatment timing.

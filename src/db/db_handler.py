@@ -204,15 +204,8 @@ class DBHandler(ABC):
 
 
 def get_db_handler() -> "DBHandler":
-    """Return the configured DB handler. DB_BACKEND=sqlite|supabase, defaults to local sqlite."""
+    """Return the remote DB handler."""
 
-    backend = (MyEnv.get("DB_BACKEND") or "sqlite").lower()
-    if backend == "sqlite":
-        from src.db.sqlite_handler import SqliteHandler
+    from src.db.supabase_handler import SupabaseHandler
 
-        return SqliteHandler()
-    if backend == "supabase":
-        from src.db.supabase_handler import SupabaseHandler
-
-        return SupabaseHandler()
-    raise ValueError(f"Unsupported DB_BACKEND: {backend}")
+    return SupabaseHandler()

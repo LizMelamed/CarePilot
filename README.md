@@ -30,13 +30,15 @@ http://127.0.0.1:8000/
 Before starting the web UI, `res/configs/.env` must point to existing working remote services:
 
 ```text
-LOCAL_MODE=false
-REMOTE_LLM_URL=https://api.llmod.ai/v1
-REMOTE_LLM_MODEL=MB5R2CF-azure/gpt-5.4-mini
-REMOTE_EMBEDDER_URL=https://api.llmod.ai/v1
-REMOTE_EMBEDDER_MODEL=MB5R2CF-azure/text-embedding-3-small
-REMOTE_DB_BACKEND=supabase
-REMOTE_VECTOR_STORE_BACKEND=pinecone
+LLM_URL=https://api.llmod.ai/v1
+LLM_KEY=...
+LLM_MODEL=MB5R2CF-azure/gpt-5.4-mini
+EMBEDDER_URL=https://api.llmod.ai/v1
+EMBEDDER_KEY=...
+EMBEDDER_MODEL=MB5R2CF-azure/text-embedding-3-small
+DB_URL=https://<project>.supabase.co
+DB_AUTH_TOKEN=...
+PINECONE_API_KEY=...
 PINECONE_INDEX=carepilot-clinical-rag
 ```
 

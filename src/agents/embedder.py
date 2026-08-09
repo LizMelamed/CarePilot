@@ -27,9 +27,8 @@ class Embedder(metaclass=SingletonMeta):
             api_key=api_key,
             base_url=url,
             model=model,
-            # Ollama's OpenAI-compatible embeddings endpoint only accepts raw text input.
-            # Without this, langchain pre-tokenizes text into integer token arrays via
-            # tiktoken (valid for real OpenAI), which Ollama rejects as "invalid input type".
+            # Some OpenAI-compatible embeddings endpoints only accept raw text input.
+            # Without this, langchain may pre-tokenize text into integer token arrays.
             check_embedding_ctx_length=False,
         )
         """The Embedder object used to generate vector embeddings."""

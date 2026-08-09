@@ -1,51 +1,42 @@
-import asyncio
+import sys
+from types import SimpleNamespace
 
 import pytest
 
-from src.db.faiss_vector_store import FaissVectorStore
+from src.db.pinecone_vector_store import PineconeVectorStore
 from src.db.vector_store import get_clinical_vector_store
 
 
-def test_faiss_upsert_query_filter_persist_delete(tmp_path):
-    store = FaissVectorStore(tmp_path)
+class FakePineconeClient:
+    def __init__(self, api_key):
+        self.api_key = api_key
 
-    asyncio.run(
-        store.upsert(
-            ["clinical", "insurance"],
-            [[1.0, 0.0], [0.0, 1.0]],
-            [
-                {"text": "neutropenia infection", "topic_tags": ["clinical"], "title": "Clinical"},
-                {"text": "appeal denied", "topic_tags": ["insurance"], "title": "Insurance"},
-            ],
-        )
-    )
-
-    assert asyncio.run(store.query([1.0, 0.0], top_k=1))[0].id == "clinical"
-    assert asyncio.run(store.query([1.0, 0.0], top_k=1, filter={"topic_tags": "insurance"}))[0].id == "insurance"
-
-    reloaded = FaissVectorStore(tmp_path)
-    assert asyncio.run(reloaded.query([0.0, 1.0], top_k=1))[0].id == "insurance"
-
-    asyncio.run(reloaded.delete(["insurance"]))
-    remaining = asyncio.run(reloaded.query([0.0, 1.0], top_k=2))
-    assert [match.id for match in remaining] == ["clinical"]
+    def Index(self, index_name):
+        return SimpleNamespace(index_name=index_name)
 
 
-def test_faiss_validates_inputs(tmp_path):
-    store = FaissVectorStore(tmp_path)
+def test_vector_store_factory_returns_pinecone(monkeypatch):
+    monkeypatch.setenv("PINECONE_API_KEY", "test-key")
+    monkeypatch.setenv("PINECONE_INDEX", "test-index")
+    monkeypatch.setitem(sys.modules, "pinecone", SimpleNamespace(Pinecone=FakePineconeClient))
 
-    with pytest.raises(ValueError, match="same length"):
-        asyncio.run(store.upsert(["a"], [[1.0]], []))
+    store = get_clinical_vector_store()
 
-    with pytest.raises(ValueError, match="unique"):
-        asyncio.run(store.upsert(["a", "a"], [[1.0], [2.0]], [{}, {}]))
-
-    with pytest.raises(ValueError, match="same dimension"):
-        asyncio.run(store.upsert(["a", "b"], [[1.0], [1.0, 2.0]], [{}, {}]))
+    assert isinstance(store, PineconeVectorStore)
+    assert store._index.index_name == "test-index"
 
 
-def test_vector_store_factory_rejects_unknown_backend(monkeypatch):
-    monkeypatch.setenv("VECTOR_STORE_BACKEND", "unknown")
+def test_pinecone_vector_store_requires_api_key(monkeypatch):
+    monkeypatch.delenv("PINECONE_API_KEY", raising=False)
+    monkeypatch.setenv("PINECONE_INDEX", "test-index")
 
-    with pytest.raises(ValueError, match="Unsupported VECTOR_STORE_BACKEND"):
+    with pytest.raises(ValueError, match="PINECONE_API_KEY"):
+        get_clinical_vector_store()
+
+
+def test_pinecone_vector_store_requires_index(monkeypatch):
+    monkeypatch.setenv("PINECONE_API_KEY", "test-key")
+    monkeypatch.delenv("PINECONE_INDEX", raising=False)
+
+    with pytest.raises(ValueError, match="PINECONE_INDEX"):
         get_clinical_vector_store()

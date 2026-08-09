@@ -39,10 +39,9 @@ class SafetyGuardAgent(BaseAgent):
             reasoning_effort = MyEnv.get("SAFETY_REASONING_EFFORT") or "low"
             self._model = self._model.bind(
                 reasoning_effort=reasoning_effort,
-                # Ollama-specific: without an explicit "think" value, hybrid-thinking models (e.g.
-                # qwen3) can leave their raw <think>...</think> trace mixed into `content` instead of
-                # a separate `reasoning` field, breaking strict JSON parsing of the response. This is
-                # ignored by providers that don't recognize it.
+                # Some OpenAI-compatible providers expose hybrid-thinking models that can leave raw
+                # <think> traces in content, breaking strict JSON parsing. Providers that do not
+                # recognize this ignore it.
                 extra_body={"think": False},
             )
 

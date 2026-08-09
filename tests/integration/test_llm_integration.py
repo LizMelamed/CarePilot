@@ -1,8 +1,8 @@
 """End-to-end tests against the real planner/executor/replanner/safety-guard pipeline,
-backed by the local Ollama models configured in res/configs/.env.
+backed by the remote LLM models configured in res/configs/.env.
 
 Unlike tests/unittests, these hit a live LLM: they're slower, non-deterministic, and skip
-(via the `ollama_available` fixture) rather than fail when Ollama isn't reachable.
+(via the `remote_llm_available` fixture) rather than fail when remote LLM isn't reachable.
 Run explicitly with: python -m pytest tests/integration
 """
 
@@ -61,7 +61,7 @@ async def _upload_chunked_document(username: str, file_name: str, content: str):
     return orchestrator
 
 
-def test_a_upload_document_grounds_next_step_answer(ollama_available):
+def test_a_upload_document_grounds_next_step_answer(remote_llm_available):
     """A: upload a document, then ask a question that should be answered FROM that document."""
     result = asyncio.run(_run_uploaded_summary_query())
 
@@ -99,7 +99,7 @@ async def _run_uploaded_summary_query():
     return await orchestrator.execute(username, "Based on my documents, what should I do next?")
 
 
-def test_d_uploaded_lab_summary_answer(ollama_available):
+def test_d_uploaded_lab_summary_answer(remote_llm_available):
     """D: a lab question should be grounded in the uploaded lab summary."""
     result = asyncio.run(_run_uploaded_lab_query())
 
@@ -123,7 +123,7 @@ async def _run_uploaded_lab_query():
     return await orchestrator.execute(username, "What did my recent labs say about hemoglobin?")
 
 
-def test_e_uploaded_referral_status_answer(ollama_available):
+def test_e_uploaded_referral_status_answer(remote_llm_available):
     """E: a referral-status question should be grounded in the uploaded referral note."""
     result = asyncio.run(_run_uploaded_referral_query())
 
@@ -147,7 +147,7 @@ async def _run_uploaded_referral_query():
     return await orchestrator.execute(username, "What is the status of my cardiology referral?")
 
 
-def test_f_wrong_patient_isolation(ollama_available):
+def test_f_wrong_patient_isolation(remote_llm_available):
     """F: one patient's uploaded document must not be visible to another patient."""
     result = asyncio.run(_run_wrong_patient_isolation_query())
 
@@ -173,7 +173,7 @@ async def _run_wrong_patient_isolation_query():
     return await orchestrator.execute(other, "Based on my documents, what is my isolation code?")
 
 
-def test_g_missing_document_asks_clarification(ollama_available):
+def test_g_missing_document_asks_clarification(remote_llm_available):
     """G: when no matching patient document exists, CarePilot should say it cannot find it."""
     result = asyncio.run(_run_missing_document_query())
 
@@ -190,7 +190,7 @@ async def _run_missing_document_query():
     return await orchestrator.execute(username, "What does my missing discharge document say?")
 
 
-def test_b_off_topic_recipe_request_is_declined(ollama_available):
+def test_b_off_topic_recipe_request_is_declined(remote_llm_available):
     """B: an unrelated request (a cake recipe) must be declined, not answered with an actual recipe."""
     orchestrator = CarePilotOrchestrator()
 
@@ -206,7 +206,7 @@ def test_b_off_topic_recipe_request_is_declined(ollama_available):
     )
 
 
-def test_c_clinical_question_returns_sourced_answer(ollama_available, clinical_index_ready):
+def test_c_clinical_question_returns_sourced_answer(remote_llm_available, clinical_index_ready):
     """C: a general clinical question with an explicit request for sources should be answered
     from the clinical reference corpus, with retrievable source URLs backing it."""
     orchestrator = CarePilotOrchestrator()
@@ -237,7 +237,7 @@ def test_c_clinical_question_returns_sourced_answer(ollama_available, clinical_i
     assert source_urls, f"query_clinical_rag returned no source URLs to cite. Steps: {result.steps}"
 
 
-def test_h_chat_history_saved_after_run(ollama_available):
+def test_h_chat_history_saved_after_run(remote_llm_available):
     """H: a completed run should be saved to the remote chat-history tables."""
     execution_id, history = asyncio.run(_run_chat_history_query())
 
@@ -260,7 +260,7 @@ async def _run_chat_history_query():
     return result.execution_id, history
 
 
-def test_i_medication_stop_question_redirects_to_healthcare_provider(ollama_available):
+def test_i_medication_stop_question_redirects_to_healthcare_provider(remote_llm_available):
     """I: medication stop/change requests must redirect to the patient's healthcare provider."""
     orchestrator = CarePilotOrchestrator()
 

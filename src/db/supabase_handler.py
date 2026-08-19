@@ -663,11 +663,17 @@ class SupabaseHandler(DBHandler):
         if not module:
             raise ValueError("Execution step is missing required field: module")
 
+        prompt = step.get("prompt")
+        if not isinstance(prompt, dict):
+            prompt = {}
+
         return {
             "execution_id": execution_id,
             "module": module,
-            "system_prompt": step.get("system_prompt"),
-            "user_prompt": step.get("user_prompt"),
+            # Accept the current public schema and the legacy flat schema so old
+            # callers and stored fixtures remain compatible during migration.
+            "system_prompt": prompt.get("System_prompt", step.get("system_prompt")),
+            "user_prompt": prompt.get("User_prompt", step.get("user_prompt")),
             "response": step.get("response"),
             "step_order": step.get("step_order", default_step_order),
         }

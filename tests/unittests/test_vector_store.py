@@ -34,9 +34,11 @@ def test_pinecone_vector_store_requires_api_key(monkeypatch):
         get_clinical_vector_store()
 
 
-def test_pinecone_vector_store_requires_index(monkeypatch):
+def test_pinecone_vector_store_uses_submission_index_default(monkeypatch):
     monkeypatch.setenv("PINECONE_API_KEY", "test-key")
     monkeypatch.delenv("PINECONE_INDEX", raising=False)
+    monkeypatch.setitem(sys.modules, "pinecone", SimpleNamespace(Pinecone=FakePineconeClient))
 
-    with pytest.raises(ValueError, match="PINECONE_INDEX"):
-        get_clinical_vector_store()
+    store = get_clinical_vector_store()
+
+    assert store._index.index_name == "carepilot-clinical-rag"

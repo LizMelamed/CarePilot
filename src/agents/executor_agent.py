@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -38,6 +38,7 @@ class ExecutorResult:
     task_result: TaskResult
     step: AgentStep
     source_documents: list[str]
+    additional_steps: list[AgentStep] = field(default_factory=list)
 
 
 class ExecutorAgent(BaseAgent):
@@ -57,12 +58,13 @@ class ExecutorAgent(BaseAgent):
 
         hinted_tool = self._tool_for_hint(ctx.task.tool_hint)
         if hinted_tool in self._tools:
-            task_result, source_documents, step_result_text = await self._run_tool_call(
+            task_result, source_documents, step_result_text, synthesis_step = await self._run_tool_call(
                 ctx,
                 {
                     "name": hinted_tool,
                     "args": self._args_for_hint(ctx),
                 },
+                synthesis_step_order=ctx.step_order + 1,
             )
             step_payload = task_result.to_dict()
             if step_result_text is not None:
@@ -74,7 +76,12 @@ class ExecutorAgent(BaseAgent):
                 response=json.dumps(step_payload, ensure_ascii=True),
                 step_order=ctx.step_order,
             )
-            return ExecutorResult(task_result, step, source_documents)
+            return ExecutorResult(
+                task_result,
+                step,
+                source_documents,
+                [synthesis_step] if synthesis_step is not None else [],
+            )
 
         user_prompt = self._user_prompt(ctx)
         response = await self._tool_model.ainvoke([
@@ -85,7 +92,11 @@ class ExecutorAgent(BaseAgent):
         step_result_text = None
 
         if tool_calls:
-            task_result, source_documents, step_result_text = await self._run_tool_call(ctx, tool_calls[0])
+            task_result, source_documents, step_result_text, synthesis_step = await self._run_tool_call(
+                ctx,
+                tool_calls[0],
+                synthesis_step_order=ctx.step_order + 1,
+            )
         else:
             content = str(getattr(response, "content", "") or "")
             task_result = TaskResult(
@@ -95,6 +106,7 @@ class ExecutorAgent(BaseAgent):
                 success=bool(content.strip()),
             )
             source_documents = []
+            synthesis_step = None
 
         step_payload = task_result.to_dict()
         if step_result_text is not None:
@@ -110,18 +122,21 @@ class ExecutorAgent(BaseAgent):
             task_result=task_result,
             step=step,
             source_documents=source_documents,
+            additional_steps=[synthesis_step] if synthesis_step is not None else [],
         )
 
     async def _run_tool_call(
             self,
             ctx: ExecutorContext,
             tool_call: dict[str, Any],
-    ) -> tuple[TaskResult, list[str], str | None]:
+            synthesis_step_order: int,
+    ) -> tuple[TaskResult, list[str], str | None, AgentStep | None]:
         tool_name = tool_call.get("name")
         if tool_name not in self._tools:
             return (
                 TaskResult(ctx.task.task_id, f"Tool '{tool_name}' is not available.", tool_name, False),
                 [],
+                None,
                 None,
             )
 
@@ -136,19 +151,27 @@ class ExecutorAgent(BaseAgent):
             raw_result_text = self._format_tool_output(output)
             result_text = raw_result_text
             step_result_text = None
+            synthesis_step = None
             if self._should_synthesize_tool_output(tool_name):
-                result_text = await self._synthesize_tool_output(ctx, tool_name, result_text)
+                result_text, synthesis_step = await self._synthesize_tool_output(
+                    ctx,
+                    tool_name,
+                    result_text,
+                    synthesis_step_order,
+                )
                 step_result_text = raw_result_text
             return (
                 TaskResult(ctx.task.task_id, result_text, tool_name, True),
                 self._source_documents(output),
                 step_result_text,
+                synthesis_step,
             )
         except Exception as e:
             self._logger.exception(f"Tool '{tool_name}' failed: {e}")
             return (
                 TaskResult(ctx.task.task_id, f"Tool '{tool_name}' failed: {e}", tool_name, False),
                 [],
+                None,
                 None,
             )
 
@@ -213,11 +236,18 @@ class ExecutorAgent(BaseAgent):
             "query_clinical_rag",
         }
 
-    async def _synthesize_tool_output(self, ctx: ExecutorContext, tool_name: str, result_text: str) -> str:
+    async def _synthesize_tool_output(
+            self,
+            ctx: ExecutorContext,
+            tool_name: str,
+            result_text: str,
+            step_order: int,
+    ) -> tuple[str, AgentStep | None]:
         if not result_text.strip() or result_text.strip() in {"[]", "{}", "null", "None"}:
             return (
                 "I could not find matching information in your records. "
-                "Please ask your care team or provide more detail."
+                "Please ask your care team or provide more detail.",
+                None,
             )
 
         prompt = json.dumps(
@@ -238,9 +268,16 @@ class ExecutorAgent(BaseAgent):
                 HumanMessage(prompt),
             ])
             content = str(getattr(response, "content", "") or "").strip()
-            return content or self._fallback_tool_answer(result_text)
+            final_content = content or self._fallback_tool_answer(result_text)
+            return final_content, AgentStep(
+                module=EXECUTOR_MODULE,
+                system_prompt=EXECUTOR_SYSTEM_PROMPT.strip(),
+                user_prompt=prompt,
+                response=content,
+                step_order=step_order,
+            )
         except Exception:
-            return self._fallback_tool_answer(result_text)
+            return self._fallback_tool_answer(result_text), None
 
     @staticmethod
     def _fallback_tool_answer(result_text: str) -> str:

@@ -62,16 +62,11 @@ async def summarization(text: str) -> str:
     if not text:
         return "I cannot summarize an empty document."
 
-    try:
-        model = _build_model()
-        response = await model.ainvoke([
-            SystemMessage(SUMMARY_SYSTEM_PROMPT),
-            HumanMessage(text),
-        ])
-        output = str(getattr(response, "content", "") or "").strip()
-        return output or _extractive_summary(text)
-    except Exception:
-        return _extractive_summary(text)
+    # This tool is intentionally deterministic. The executor already receives the
+    # collected source text and the final SafetyGuard performs the model review;
+    # another hidden LLM call here would waste budget and could not be represented
+    # truthfully in the assignment's top-level execution trace.
+    return _extractive_summary(text)
 
 
 async def message_drafting(goal: str, key_points: list[str], recipient_type: str) -> str:
@@ -89,16 +84,9 @@ async def message_drafting(goal: str, key_points: list[str], recipient_type: str
         + "\n".join(f"- {point}" for point in key_points)
         + "\nReturn only the draft message."
     )
-    try:
-        model = _build_model()
-        response = await model.ainvoke([
-            SystemMessage(DRAFTING_SYSTEM_PROMPT),
-            HumanMessage(prompt),
-        ])
-        output = str(getattr(response, "content", "") or "").strip()
-        return output or _template_draft(goal, key_points, recipient_type)
-    except Exception:
-        return _template_draft(goal, key_points, recipient_type)
+    # Use a deterministic draft to avoid an unnecessary, untraced model call.
+    # The patient-facing result still passes through the final SafetyGuard.
+    return _template_draft(goal, key_points, recipient_type)
 
 
 def _build_model() -> ChatOpenAI:

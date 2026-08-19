@@ -64,6 +64,20 @@ def test_team_info_shape(monkeypatch):
     assert set(body["students"][0]) == {"name", "email"}
 
 
+def test_team_info_has_no_committed_identity_defaults(monkeypatch):
+    monkeypatch.delenv("CAREPILOT_GROUP_BATCH_ORDER_NUMBER", raising=False)
+    monkeypatch.delenv("CAREPILOT_TEAM_NAME", raising=False)
+    monkeypatch.delenv("CAREPILOT_STUDENTS_JSON", raising=False)
+
+    body = asyncio.run(api_main.team_info())
+
+    assert body == {
+        "group_batch_order_number": "",
+        "team_name": "",
+        "students": [],
+    }
+
+
 def test_agent_info_shape():
     body = asyncio.run(api_main.agent_info())
 
@@ -91,10 +105,46 @@ def test_execute_shape(monkeypatch):
 
     body_dict = body.model_dump()
     assert set(body_dict) == {"status", "error", "response", "steps"}
-    assert body.status == "success"
+    assert body.status == "ok"
+    assert body.error is None
     assert [step["module"] for step in body.steps] == [
         "PlanningLLM",
         "SingleTaskExecutorLLM",
         "RePlanLLM",
         "SafetyGuardLLM",
     ]
+
+
+def test_execute_error_matches_required_contract(monkeypatch):
+    class FailedOrchestrator:
+        async def execute(self, username: str, prompt: str):
+            return FakeOrchestratorResult(
+                status="error",
+                error="Human-readable failure",
+                response="internal fallback must not leak into the API response",
+                steps=[],
+                execution_id=None,
+            )
+
+    monkeypatch.setattr(api_main, "_orchestrator", lambda: FailedOrchestrator())
+    body = asyncio.run(
+        api_main.execute(
+            api_main.ExecuteRequest(prompt="hello"),
+            x_carepilot_username="patient_1",
+        )
+    )
+
+    assert body.model_dump() == {
+        "status": "error",
+        "error": "Human-readable failure",
+        "response": None,
+        "steps": [],
+    }
+
+
+def test_agent_step_shape_matches_assignment():
+    body = asyncio.run(api_main.agent_info())
+
+    for step in body["prompt_examples"][0]["steps"]:
+        assert set(step) == {"module", "prompt", "response"}
+        assert set(step["prompt"]) == {"System_prompt", "User_prompt"}

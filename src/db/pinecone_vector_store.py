@@ -9,15 +9,14 @@ from src.utils.my_env import MyEnv
 class PineconeVectorStore(VectorStore):
     """Pinecone adapter for the clinical vector-store interface."""
 
+    DEFAULT_INDEX = "carepilot-clinical-rag"
+
     def __init__(self):
         env = MyEnv()
         api_key = env.get("PINECONE_API_KEY")
-        index_name = env.get("PINECONE_INDEX")
+        index_name = env.get("PINECONE_INDEX") or self.DEFAULT_INDEX
         if not api_key:
             raise ValueError("PINECONE_API_KEY is required for PineconeVectorStore")
-        if not index_name:
-            raise ValueError("PINECONE_INDEX is required for PineconeVectorStore")
-
         try:
             from pinecone import Pinecone
         except ImportError as exc:

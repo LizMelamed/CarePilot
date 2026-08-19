@@ -21,7 +21,6 @@ from src.carepilot.orchestrator import CarePilotOrchestrator
 
 SAFETY_MODULE = "SafetyGuardLLM"
 EXECUTE_TIMEOUT_SECONDS = 295
-
 app = FastAPI(title="CarePilot API")
 
 
@@ -32,7 +31,7 @@ class ExecuteRequest(BaseModel):
 class ExecuteResponse(BaseModel):
     status: str
     error: str | None
-    response: str
+    response: str | None
     steps: list[dict[str, Any]]
 
 
@@ -181,23 +180,23 @@ async def execute(
             timeout=EXECUTE_TIMEOUT_SECONDS,
         )
         return ExecuteResponse(
-            status=result.status,
+            status="ok" if result.status == "success" else "error",
             error=result.error,
-            response=result.response,
+            response=result.response if result.status == "success" else None,
             steps=result.steps,
         )
     except asyncio.TimeoutError:
         return ExecuteResponse(
             status="error",
             error="Execution timed out.",
-            response="I'm sorry, but I could not complete this request within the allowed time.",
+            response=None,
             steps=[],
         )
     except Exception as e:
         return ExecuteResponse(
             status="error",
             error=str(e),
-            response="I'm sorry, but I could not complete this request due to a server error.",
+            response=None,
             steps=[],
         )
 
@@ -226,8 +225,10 @@ def _example_prompt_response() -> dict[str, Any]:
     steps = [
         {
             "module": PLANNING_MODULE,
-            "system_prompt": PLANNER_SYSTEM_PROMPT.strip(),
-            "user_prompt": json.dumps({"patient_prompt": prompt}, ensure_ascii=True),
+            "prompt": {
+                "System_prompt": PLANNER_SYSTEM_PROMPT.strip(),
+                "User_prompt": json.dumps({"patient_prompt": prompt}, ensure_ascii=True),
+            },
             "response": json.dumps(
                 {
                     "tasks": [
@@ -245,28 +246,30 @@ def _example_prompt_response() -> dict[str, Any]:
                 },
                 ensure_ascii=True,
             ),
-            "step_order": 1,
         },
         {
             "module": EXECUTOR_MODULE,
-            "system_prompt": "Executes one planned task with injected patient identity.",
-            "user_prompt": json.dumps({"task_id": "task_1", "tool_hint": "patient_db"}, ensure_ascii=True),
+            "prompt": {
+                "System_prompt": "Executes one planned task with injected patient identity.",
+                "User_prompt": json.dumps({"task_id": "task_1", "tool_hint": "patient_db"}, ensure_ascii=True),
+            },
             "response": "Patient DB documents reviewed for appointment preparation.",
-            "step_order": 2,
         },
         {
             "module": REPLANNER_MODULE,
-            "system_prompt": "Checks whether more tasks are needed.",
-            "user_prompt": json.dumps({"completed_tasks": ["task_1", "task_2"]}, ensure_ascii=True),
+            "prompt": {
+                "System_prompt": "Checks whether more tasks are needed.",
+                "User_prompt": json.dumps({"completed_tasks": ["task_1", "task_2"]}, ensure_ascii=True),
+            },
             "response": json.dumps({"done": True, "final_answer_context": "Bring recent labs, medication list, referral status, and insurance letters."}, ensure_ascii=True),
-            "step_order": 3,
         },
         {
             "module": SAFETY_MODULE,
-            "system_prompt": SAFETY_PROMPT.strip(),
-            "user_prompt": json.dumps({"query": prompt}, ensure_ascii=True),
+            "prompt": {
+                "System_prompt": SAFETY_PROMPT.strip(),
+                "User_prompt": json.dumps({"query": prompt}, ensure_ascii=True),
+            },
             "response": json.dumps({"action_taken": "PASS", "final_output": "Bring your recent lab results, medication list, referral status, and insurance letters. Ask your care team which symptoms should prompt urgent contact."}, ensure_ascii=True),
-            "step_order": 4,
         },
     ]
     return {
@@ -282,50 +285,99 @@ def _architecture_png() -> bytes:
     except ImportError:
         return _minimal_png()
 
-    width, height = 1400, 520
-    image = Image.new("RGB", (width, height), "white")
+    width, height = 1600, 820
+    image = Image.new("RGB", (width, height), "#F4F7FB")
     draw = ImageDraw.Draw(image)
-    font = ImageFont.load_default()
-    boxes = [
-        ("Patient", 40, 200, 160, 270),
-        (PLANNING_MODULE, 230, 200, 410, 270),
-        ("Task List", 480, 200, 620, 270),
-        (EXECUTOR_MODULE, 690, 180, 930, 290),
-        ("Tools", 760, 340, 860, 410),
-        (REPLANNER_MODULE, 1000, 200, 1160, 270),
-        (SAFETY_MODULE, 1220, 200, 1380, 270),
-    ]
-    for label, x1, y1, x2, y2 in boxes:
-        draw.rectangle((x1, y1, x2, y2), outline="black", width=3)
-        draw.text((x1 + 12, y1 + 24), label, fill="black", font=font)
+    title_font = _architecture_font(ImageFont, 40, bold=True)
+    subtitle_font = _architecture_font(ImageFont, 22)
+    box_font = _architecture_font(ImageFont, 22, bold=True)
+    detail_font = _architecture_font(ImageFont, 17)
 
-    arrows = [
-        ((160, 235), (230, 235)),
-        ((410, 235), (480, 235)),
-        ((620, 235), (690, 235)),
-        ((930, 235), (1000, 235)),
-        ((1160, 235), (1220, 235)),
-        ((1220, 270), (160, 310)),
-        ((810, 290), (810, 340)),
-        ((860, 340), (900, 290)),
+    draw.text((70, 55), "CarePilot Agent Architecture", fill="#17233A", font=title_font)
+    draw.text(
+        (70, 112),
+        "Minimal plan-execute-replan pipeline with grounded retrieval and final safety review",
+        fill="#53627A",
+        font=subtitle_font,
+    )
+
+    boxes = [
+        ("Patient request", 55, 270, 235, 385, "#E8F0FE", "#2F6FED"),
+        (PLANNING_MODULE, 300, 255, 525, 400, "#FFFFFF", "#2F6FED"),
+        (EXECUTOR_MODULE, 605, 255, 915, 400, "#FFFFFF", "#2F6FED"),
+        (REPLANNER_MODULE, 995, 255, 1215, 400, "#FFFFFF", "#2F6FED"),
+        (SAFETY_MODULE, 1285, 255, 1515, 400, "#E7F7EF", "#157A4F"),
     ]
-    for start, end in arrows:
-        _draw_arrow(draw, start, end)
+    for label, x1, y1, x2, y2, fill, outline in boxes:
+        draw.rounded_rectangle((x1, y1, x2, y2), radius=18, fill=fill, outline=outline, width=4)
+        _draw_centered_text(draw, label, (x1, y1, x2, y2), box_font, "#17233A")
+
+    for start, end in [
+        ((235, 327), (300, 327)),
+        ((525, 327), (605, 327)),
+        ((915, 327), (995, 327)),
+        ((1215, 327), (1285, 327)),
+    ]:
+        _draw_arrow(draw, start, end, fill="#53627A", width=4)
+
+    draw.text((336, 420), "creates the smallest useful task list", fill="#53627A", font=detail_font)
+    draw.text((664, 420), "executes one task at a time", fill="#53627A", font=detail_font)
+    draw.text((1017, 420), "only when more work is needed", fill="#53627A", font=detail_font)
+
+    tool_boxes = [
+        ("Patient records\nSupabase", 555, 570, 790, 700),
+        ("Clinical RAG\nPinecone", 815, 570, 1050, 700),
+        ("Text tools\nDeterministic", 1075, 570, 1310, 700),
+    ]
+    draw.text((555, 505), "Executor tools", fill="#17233A", font=box_font)
+    for label, x1, y1, x2, y2 in tool_boxes:
+        draw.rounded_rectangle((x1, y1, x2, y2), radius=16, fill="#FFFFFF", outline="#9AA8BC", width=3)
+        _draw_centered_text(draw, label, (x1, y1, x2, y2), detail_font, "#17233A")
+        _draw_arrow(draw, ((x1 + x2) // 2, y1), (760, 400), fill="#7B8798", width=3)
+
+    # Replanning feeds a revised task back to the executor without crossing the
+    # main request/response path.
+    draw.line((1105, 255, 1105, 205, 760, 205, 760, 255), fill="#8A5B00", width=4)
+    _draw_arrow(draw, (800, 205), (760, 255), fill="#8A5B00", width=4)
+    draw.text((864, 170), "revised task", fill="#8A5B00", font=detail_font)
 
     output = io.BytesIO()
     image.save(output, format="PNG")
     return output.getvalue()
 
 
-def _draw_arrow(draw, start: tuple[int, int], end: tuple[int, int]) -> None:
-    draw.line((start, end), fill="black", width=2)
+def _architecture_font(image_font, size: int, bold: bool = False):
+    try:
+        family = "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf"
+        return image_font.truetype(family, size=size)
+    except OSError:
+        return image_font.load_default()
+
+
+def _draw_centered_text(draw, text: str, box: tuple[int, int, int, int], font, fill: str) -> None:
+    x1, y1, x2, y2 = box
+    left, top, right, bottom = draw.multiline_textbbox((0, 0), text, font=font, align="center", spacing=7)
+    width = right - left
+    height = bottom - top
+    draw.multiline_text(
+        (x1 + (x2 - x1 - width) / 2, y1 + (y2 - y1 - height) / 2),
+        text,
+        fill=fill,
+        font=font,
+        align="center",
+        spacing=7,
+    )
+
+
+def _draw_arrow(draw, start: tuple[int, int], end: tuple[int, int], fill: str = "black", width: int = 2) -> None:
+    draw.line((start, end), fill=fill, width=width)
     x1, y1 = start
     x2, y2 = end
     if x2 >= x1:
         head = [(x2, y2), (x2 - 10, y2 - 6), (x2 - 10, y2 + 6)]
     else:
         head = [(x2, y2), (x2 + 10, y2 - 6), (x2 + 10, y2 + 6)]
-    draw.polygon(head, fill="black")
+    draw.polygon(head, fill=fill)
 
 
 def _minimal_png() -> bytes:

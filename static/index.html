@@ -161,44 +161,6 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ---------- Login ---------- */
-  #view-login {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    background:
-      radial-gradient(1100px 600px at 10% -10%, var(--accent-soft), transparent 60%),
-      radial-gradient(900px 500px at 110% 10%, var(--success-soft), transparent 55%),
-      var(--bg);
-  }
-  .login-card {
-    width: 100%;
-    max-width: 400px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
-    padding: 36px 32px 30px;
-  }
-  .login-brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 22px;
-  }
-  .login-brand .logo-mark {
-    width: 40px; height: 40px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, var(--accent), #6aa0ff);
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-weight: 800; font-size: 1.1rem;
-    flex: none;
-  }
-  .login-brand h1 { margin: 0; font-size: 1.25rem; }
-  .login-brand p { margin: 2px 0 0; font-size: 0.82rem; color: var(--muted); }
-
   .field { margin-bottom: 16px; }
   .field label {
     display: block;
@@ -229,62 +191,6 @@
     border-color: var(--accent);
     background: var(--panel);
     box-shadow: 0 0 0 3px var(--accent-soft);
-  }
-
-  .quick-users {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 18px;
-  }
-  .chip {
-    border: 1px solid var(--border);
-    background: var(--bg-inset);
-    color: var(--text);
-    border-radius: 999px;
-    padding: 6px 13px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .chip:hover { border-color: var(--accent); color: var(--accent); }
-  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
-
-  .login-divider {
-    display: flex; align-items: center; gap: 10px;
-    color: var(--muted-2); font-size: 0.75rem;
-    margin: 4px 0 18px;
-    text-transform: uppercase; letter-spacing: 0.06em;
-  }
-  .login-divider::before, .login-divider::after {
-    content: ""; flex: 1; height: 1px; background: var(--border);
-  }
-
-  .login-error {
-    background: var(--error-soft);
-    color: var(--error);
-    border: 1px solid transparent;
-    border-radius: var(--radius-sm);
-    padding: 10px 12px;
-    font-size: 0.85rem;
-    margin-bottom: 16px;
-    display: none;
-  }
-  .login-error.visible { display: block; }
-
-  .remember-row {
-    display: flex; align-items: center; gap: 8px;
-    margin: 14px 0 20px;
-    font-size: 0.85rem; color: var(--muted);
-  }
-  .remember-row input { width: 16px; height: 16px; accent-color: var(--accent); }
-
-  .login-footnote {
-    text-align: center;
-    font-size: 0.76rem;
-    color: var(--muted-2);
-    margin-top: 18px;
-    line-height: 1.5;
   }
 
   /* ---------- App shell ---------- */
@@ -758,48 +664,6 @@
 </head>
 <body>
 
-<!-- ===================== LOGIN VIEW ===================== -->
-<div id="view-login">
-  <div class="login-card">
-    <div class="login-brand">
-      <div class="logo-mark">CP</div>
-      <div>
-        <h1>CarePilot</h1>
-        <p>Sign in to your patient workspace</p>
-      </div>
-    </div>
-
-    <div class="login-error" id="login-error" role="alert"></div>
-
-    <div id="quick-users-wrap" style="display:none;">
-      <label style="display:block; font-size:0.82rem; font-weight:600; margin-bottom:8px; color:var(--muted);">Known patients</label>
-      <div class="quick-users" id="quick-users"></div>
-      <div class="login-divider">or enter a patient ID</div>
-    </div>
-
-    <form id="login-form">
-      <div class="field">
-        <label for="login-username">Patient ID</label>
-        <input class="text-input" id="login-username" name="username" type="text" placeholder="e.g. patient_1" autocomplete="username" required>
-      </div>
-      <div class="field">
-        <label for="login-password">Password</label>
-        <input class="text-input" id="login-password" name="password" type="password" placeholder="••••••••" autocomplete="current-password">
-        <p class="hint">CarePilot is running in demo mode: identity is established by patient ID, so any password is accepted.</p>
-      </div>
-      <div class="remember-row">
-        <input type="checkbox" id="login-remember" checked>
-        <label for="login-remember">Stay signed in on this device</label>
-      </div>
-      <button type="submit" class="btn btn-primary btn-block" id="login-submit">
-        <span id="login-submit-label">Sign in</span>
-      </button>
-    </form>
-
-    <p class="login-footnote">Your identity determines which patient records CarePilot can read while answering your questions.</p>
-  </div>
-</div>
-
 <!-- ===================== APP SHELL ===================== -->
 <div id="app">
   <aside class="sidebar">
@@ -829,10 +693,6 @@
           <div class="role">Patient</div>
         </div>
       </div>
-      <button class="btn btn-ghost btn-block" id="logout-btn" style="margin-top:6px; justify-content:flex-start;">
-        <span class="icon" aria-hidden="true" style="width:16px;height:16px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span>
-        Sign out
-      </button>
     </div>
   </aside>
 
@@ -842,7 +702,6 @@
         <div class="logo-mark" style="width:28px;height:28px;font-size:0.8rem;">CP</div>
         <strong>CarePilot</strong>
       </div>
-      <button class="btn btn-ghost btn-sm" id="logout-btn-mobile">Sign out</button>
     </div>
     <nav class="mobile-nav" aria-label="Primary">
       <button class="nav-item" data-view="ask" aria-current="page">Ask</button>
@@ -936,7 +795,7 @@
             <div class="avatar" id="account-avatar">P</div>
             <div>
               <h3 id="account-username">—</h3>
-              <p>Signed in patient identity</p>
+              <p>Demo patient identity</p>
             </div>
           </div>
           <div id="account-status"></div>
@@ -944,9 +803,8 @@
         </div>
 
         <div class="card">
-          <h3>Session</h3>
-          <p class="card-sub">You're signed in on this device.</p>
-          <button class="btn btn-danger" id="logout-btn-2">Sign out</button>
+          <h3>Demo mode</h3>
+          <p class="card-sub">This submission opens immediately with the synthetic patient_1 profile.</p>
         </div>
       </section>
 
@@ -969,8 +827,7 @@
 <div id="toast-stack" aria-live="polite"></div>
 
 <script>
-const STORAGE_KEY = 'carepilot_username';
-const SESSION_KEY = 'carepilot_username_session';
+const DEFAULT_DEMO_PATIENT = 'patient_1';
 
 /* ---------- Utilities ---------- */
 function escapeHtml(value) {
@@ -980,22 +837,7 @@ function escapeHtml(value) {
 }
 
 function getUsername() {
-  return localStorage.getItem(STORAGE_KEY) || sessionStorage.getItem(SESSION_KEY);
-}
-
-function setUsername(username, remember) {
-  localStorage.removeItem(STORAGE_KEY);
-  sessionStorage.removeItem(SESSION_KEY);
-  if (remember) {
-    localStorage.setItem(STORAGE_KEY, username);
-  } else {
-    sessionStorage.setItem(SESSION_KEY, username);
-  }
-}
-
-function clearUsername() {
-  localStorage.removeItem(STORAGE_KEY);
-  sessionStorage.removeItem(SESSION_KEY);
+  return DEFAULT_DEMO_PATIENT;
 }
 
 function authHeaders(extra) {
@@ -1033,81 +875,13 @@ function showToast(message, kind) {
   }, 4200);
 }
 
-/* ---------- Login ---------- */
-const loginView = document.getElementById('view-login');
 const appView = document.getElementById('app');
-const loginForm = document.getElementById('login-form');
-const loginUsernameInput = document.getElementById('login-username');
-const loginRememberInput = document.getElementById('login-remember');
-const loginError = document.getElementById('login-error');
-const loginSubmitBtn = document.getElementById('login-submit');
-const loginSubmitLabel = document.getElementById('login-submit-label');
-const quickUsersWrap = document.getElementById('quick-users-wrap');
-const quickUsers = document.getElementById('quick-users');
-
-async function loadQuickUsers() {
-  try {
-    const res = await fetch('/api/users');
-    if (!res.ok) return;
-    const data = await res.json();
-    const users = Array.isArray(data.users) ? data.users : [];
-    if (users.length === 0) return;
-    quickUsers.innerHTML = '';
-    users.forEach((u) => {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'chip';
-      chip.textContent = u;
-      chip.setAttribute('aria-pressed', 'false');
-      chip.addEventListener('click', () => {
-        loginUsernameInput.value = u;
-        Array.from(quickUsers.children).forEach(c => c.setAttribute('aria-pressed', String(c === chip)));
-        loginUsernameInput.focus();
-      });
-      quickUsers.appendChild(chip);
-    });
-    quickUsersWrap.style.display = '';
-  } catch {
-    /* quick-select is a convenience only */
-  }
-}
-
-loginForm.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const username = loginUsernameInput.value.trim();
-  if (!username) return;
-  loginError.classList.remove('visible');
-  loginSubmitBtn.disabled = true;
-  loginSubmitBtn.innerHTML = '';
-  const spinner = document.createElement('span');
-  spinner.className = 'spinner';
-  loginSubmitBtn.appendChild(spinner);
-  loginSubmitBtn.appendChild(document.createTextNode(' Signing in…'));
-
-  setUsername(username, loginRememberInput.checked);
-  try {
-    await enterApp(username);
-  } catch (err) {
-    loginError.textContent = 'Could not sign in: ' + err.message;
-    loginError.classList.add('visible');
-    clearUsername();
-  } finally {
-    loginSubmitBtn.disabled = false;
-    loginSubmitBtn.innerHTML = '<span id="login-submit-label">Sign in</span>';
-  }
-});
-
-function showLogin() {
-  loginView.style.display = 'flex';
-  appView.classList.remove('visible');
-  loadQuickUsers();
-}
 
 /* ---------- Navigation ---------- */
 const views = {
   ask: { title: 'Ask CarePilot', sub: 'Get grounded answers from your records and clinical references.' },
   documents: { title: 'My Documents', sub: 'Upload and manage the records CarePilot can reference.' },
-  account: { title: 'Account', sub: 'Your signed-in patient identity.' },
+  account: { title: 'Account', sub: 'The synthetic patient identity used for this demo.' },
 };
 
 function setActiveView(name) {
@@ -1128,26 +902,14 @@ document.querySelectorAll('.nav-item[data-view]').forEach(btn => {
   btn.addEventListener('click', () => setActiveView(btn.dataset.view));
 });
 
-/* ---------- Enter app / sign out ---------- */
+/* ---------- Enter app ---------- */
 async function enterApp(username) {
   document.getElementById('sidebar-username').textContent = username;
   document.getElementById('sidebar-avatar').textContent = initials(username);
-  loginView.style.display = 'none';
   appView.classList.add('visible');
   const requested = location.hash.replace('#', '');
   setActiveView(views[requested] ? requested : 'ask');
 }
-
-function signOut() {
-  clearUsername();
-  document.getElementById('result-section').classList.remove('visible');
-  document.getElementById('prompt-input').value = '';
-  showLogin();
-}
-
-['logout-btn', 'logout-btn-mobile', 'logout-btn-2'].forEach(id => {
-  document.getElementById(id).addEventListener('click', signOut);
-});
 
 /* ---------- Ask view ---------- */
 const runButton = document.getElementById('run-button');
@@ -1182,16 +944,17 @@ function renderSteps(steps) {
   steps.forEach((step, index) => {
     const details = document.createElement('details');
     details.className = 'step';
-    const order = step.step_order != null ? step.step_order : index + 1;
+    const order = index + 1;
+    const prompt = step.prompt || {};
     details.innerHTML = `
       <summary>${escapeHtml(step.module || 'Step')}<span class="order">Step ${escapeHtml(order)}</span></summary>
       <div class="step-block">
         <h4>System prompt</h4>
-        <pre>${escapeHtml(step.system_prompt)}</pre>
+        <pre>${escapeHtml(prompt.System_prompt)}</pre>
       </div>
       <div class="step-block">
         <h4>User prompt</h4>
-        <pre>${escapeHtml(step.user_prompt)}</pre>
+        <pre>${escapeHtml(prompt.User_prompt)}</pre>
       </div>
       <div class="step-block">
         <h4>Response</h4>
@@ -1456,12 +1219,7 @@ async function loadAccount() {
 
 /* ---------- Boot ---------- */
 (function boot() {
-  const existing = getUsername();
-  if (existing) {
-    enterApp(existing);
-  } else {
-    showLogin();
-  }
+  enterApp(getUsername());
 })();
 </script>
 </body>

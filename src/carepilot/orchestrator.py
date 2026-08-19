@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 from src.agents.executor_agent import ExecutorAgent, ExecutorContext
 from src.agents.planner_agent import PlannerAgent, PlannerContext
 from src.agents.replanner_agent import ReplannerAgent, ReplannerContext
-from src.agents.safetyguard_agent import SafetyGuardAgent, SafetyGuardContext
+from src.agents.safetyguard_agent import SAFETY_PROMPT, SafetyGuardAgent, SafetyGuardContext
 from src.agents.workflow_types import AgentStep, PlannedTask, TaskResult
 from src.carepilot.system import System
 from src.utils.logger import Logger
@@ -116,7 +116,7 @@ class CarePilotOrchestrator:
             steps.append(
                 AgentStep(
                     module="SafetyGuardLLM",
-                    system_prompt="See SafetyGuardAgent.SAFETY_PROMPT",
+                    system_prompt=SAFETY_PROMPT.strip(),
                     user_prompt=json.dumps(
                         {
                             "query": prompt,
@@ -167,9 +167,10 @@ class CarePilotOrchestrator:
             if executor_result is None:
                 raise RuntimeError(f"Executor failed for task '{task.task_id}'.")
             steps.append(executor_result.step)
+            steps.extend(executor_result.additional_steps)
             task_results.append(executor_result.task_result)
             source_documents.extend(executor_result.source_documents)
-            step_order += 1
+            step_order += 1 + len(executor_result.additional_steps)
         return step_order
 
     async def _replan_until_done(

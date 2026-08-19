@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from src.agents.embedder import Embedder
+from src.db.vector_store import get_clinical_vector_store
 from src.utils.my_env import MyEnv
 from src.utils.singleton import SingletonMeta
 
@@ -31,6 +32,8 @@ def isolate_unit_tests_from_local_secrets(monkeypatch):
 
     SingletonMeta._instances.pop(MyEnv, None)
     SingletonMeta._instances.pop(Embedder, None)
+    get_clinical_vector_store.cache_clear()
     yield
     SingletonMeta._instances.pop(MyEnv, None)
     SingletonMeta._instances.pop(Embedder, None)
+    get_clinical_vector_store.cache_clear()

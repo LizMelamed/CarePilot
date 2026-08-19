@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Any
 
 
@@ -40,8 +41,9 @@ class VectorStore(ABC):
         raise NotImplementedError
 
 
+@lru_cache(maxsize=1)
 def get_clinical_vector_store() -> VectorStore:
-    """Return the clinical RAG vector store."""
+    """Return the process-wide clinical RAG vector store."""
 
     from src.db.pinecone_vector_store import PineconeVectorStore
 

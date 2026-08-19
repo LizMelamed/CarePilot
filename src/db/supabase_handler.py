@@ -187,32 +187,6 @@ class SupabaseHandler(DBHandler):
                     .execute()
                 )
 
-    async def _upsert_file_record_with_optional_content(self, payload: dict[str, Any]) -> bool:
-        try:
-            response = await (
-                self._db.table("files")
-                .upsert(payload, on_conflict="file_path")
-                .execute()
-            )
-            return bool(response and response.data)
-        except Exception as e:
-            if "content" not in payload or "content" not in str(e).lower():
-                raise
-            fallback_payload = {key: value for key, value in payload.items() if key != "content"}
-            response = await (
-                self._db.table("files")
-                .upsert(fallback_payload, on_conflict="file_path")
-                .execute()
-            )
-            return bool(response and response.data)
-
-        except StorageException as e:
-            self._logger.exception(f"Storage API Error: {e}")
-            return False
-        except Exception as e:
-            self._logger.exception(f"Unexpected Error during file record upsert: {e}")
-            return False
-
     async def delete_file(self, username: str, file_name: str) -> bool:
         client: AsyncClient = self._db
         file_path = self.__file_path(username, file_name)
@@ -521,7 +495,7 @@ class SupabaseHandler(DBHandler):
                 "content": content,
                 "metadata": metadata or {},
             }
-            return await self._upsert_file_record_with_optional_content(payload)
+            return await self._upsert_file_record(payload)
         except Exception as e:
             self._logger.exception(f"Unexpected Error during patient document upsert: {e}")
             return False

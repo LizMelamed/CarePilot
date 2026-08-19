@@ -26,6 +26,17 @@ def test_vector_store_factory_returns_pinecone(monkeypatch):
     assert store._index.index_name == "test-index"
 
 
+def test_vector_store_factory_reuses_process_client(monkeypatch):
+    monkeypatch.setenv("PINECONE_API_KEY", "test-key")
+    monkeypatch.setenv("PINECONE_INDEX", "test-index")
+    monkeypatch.setitem(sys.modules, "pinecone", SimpleNamespace(Pinecone=FakePineconeClient))
+
+    first = get_clinical_vector_store()
+    second = get_clinical_vector_store()
+
+    assert second is first
+
+
 def test_pinecone_vector_store_requires_api_key(monkeypatch):
     monkeypatch.delenv("PINECONE_API_KEY", raising=False)
     monkeypatch.setenv("PINECONE_INDEX", "test-index")

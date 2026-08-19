@@ -1,4 +1,5 @@
 import asyncio
+from types import SimpleNamespace
 
 from langchain_core.tools import InjectedToolArg
 
@@ -6,7 +7,13 @@ from src.db.vector_store import VectorMatch
 from src.agents.executor_agent import ExecutorAgent
 from src.agents.planner_agent import PlannerAgent
 from src.agents.replanner_agent import ReplannerAgent, ReplannerContext
-from src.agents.safetyguard_agent import ACTION_BLOCK, ACTION_REWRITTEN, FALLBACK_MESSAGE, SafetyGuardAgent
+from src.agents.safetyguard_agent import (
+    ACTION_BLOCK,
+    ACTION_REWRITTEN,
+    FALLBACK_MESSAGE,
+    SafetyGuardAgent,
+    SafetyGuardContext,
+)
 from src.agents.workflow_types import PlannedTask, TaskResult
 from src.tools import db_tools
 from src.tools.db_tools import GetFileArgs, GetPatientDocumentsArgs
@@ -119,6 +126,34 @@ def test_safety_guard_medication_stop_question_is_rewritten():
     assert result["action_taken"] == ACTION_REWRITTEN
     assert "cannot tell you whether to stop" in result["final_output"]
     assert "healthcare provider" in result["final_output"]
+
+
+def test_safety_guard_malformed_output_fails_closed_without_retry():
+    class FakeModel:
+        calls = 0
+
+        async def ainvoke(self, messages):
+            self.calls += 1
+            return SimpleNamespace(content="not json")
+
+    agent = SafetyGuardAgent.__new__(SafetyGuardAgent)
+    agent._model = FakeModel()
+    agent._logger = SimpleNamespace(error=lambda *args: None, exception=lambda *args: None)
+
+    result = asyncio.run(
+        agent.act(
+            SafetyGuardContext(
+                prompts=[],
+                query="What do my records say?",
+                draft_response="Draft",
+                documents=[],
+            )
+        )
+    )
+
+    assert agent._model.calls == 1
+    assert result["action_taken"] == ACTION_BLOCK
+    assert result["final_output"] == FALLBACK_MESSAGE
 
 
 def test_patient_tool_username_is_injected_metadata():

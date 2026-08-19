@@ -63,6 +63,19 @@ On Vercel, configure these as project environment variables instead of uploading
 the local `.env` file. Team metadata is intentionally not stored in Git, so all
 three `CAREPILOT_*` metadata variables must also be configured in Vercel.
 
+## Deploy to Vercel
+
+1. Import the GitHub repository into Vercel with the repository root as the
+   project root.
+2. Add every required service and submission-metadata variable from the local
+   `.env` to the Vercel project's Production, Preview, and Development
+   environments.
+3. Deploy the final submission branch. The tracked `vercel.json` routes the root
+   URL and all API paths through `api/index.py`, and gives the Python function a
+   295-second maximum duration.
+4. Verify the deployed root GUI and all four required endpoints. A localhost
+   test is not a substitute for this production check.
+
 Never commit `res/configs/.env`: it contains service credentials. Give the
 professor only the deployed Vercel URL and GitHub repository URL, as required by
 the assignment. The professor can retrieve the team details from

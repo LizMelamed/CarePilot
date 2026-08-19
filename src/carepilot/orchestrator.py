@@ -65,7 +65,6 @@ class CarePilotOrchestrator:
                 home_city = patient_data.get("home_city")
 
             planner_ctx = PlannerContext(
-                prompts=[],
                 prompt=prompt,
                 username=username,
                 home_city=home_city,
@@ -103,7 +102,6 @@ class CarePilotOrchestrator:
 
             safety_result = await self._safety_guard.act(
                 SafetyGuardContext(
-                    prompts=[],
                     query=prompt,
                     draft_response=draft_response,
                     documents=source_documents,
@@ -157,7 +155,6 @@ class CarePilotOrchestrator:
         for task in tasks:
             executor_result = await self._executor.act(
                 ExecutorContext(
-                    prompts=[],
                     username=username,
                     task=task,
                     step_order=step_order,
@@ -189,7 +186,6 @@ class CarePilotOrchestrator:
         while True:
             replanner_result = await self._replanner.act(
                 ReplannerContext(
-                    prompts=[],
                     original_prompt=prompt,
                     original_tasks=original_tasks,
                     task_results=task_results,

@@ -58,11 +58,30 @@ class ExecutorAgent(BaseAgent):
 
         hinted_tool = self._tool_for_hint(ctx.task.tool_hint)
         if hinted_tool in self._tools:
+            hinted_args = self._args_for_hint(ctx)
+            if hinted_args is None:
+                task_result = TaskResult(
+                    ctx.task.task_id,
+                    "Nothing is available to summarize; retrieve patient records or other source text first.",
+                    hinted_tool,
+                    False,
+                )
+                return ExecutorResult(
+                    task_result=task_result,
+                    step=AgentStep(
+                        module=EXECUTOR_MODULE,
+                        system_prompt=EXECUTOR_SYSTEM_PROMPT.strip(),
+                        user_prompt=self._user_prompt(ctx),
+                        response=json.dumps(task_result.to_dict(), ensure_ascii=True),
+                        step_order=ctx.step_order,
+                    ),
+                    source_documents=[],
+                )
             task_result, source_documents, step_result_text, synthesis_step = await self._run_tool_call(
                 ctx,
                 {
                     "name": hinted_tool,
-                    "args": self._args_for_hint(ctx),
+                    "args": hinted_args,
                 },
                 synthesis_step_order=ctx.step_order + 1,
             )
@@ -197,11 +216,13 @@ class ExecutorAgent(BaseAgent):
         }.get(tool_hint)
 
     @staticmethod
-    def _args_for_hint(ctx: ExecutorContext) -> dict[str, Any]:
+    def _args_for_hint(ctx: ExecutorContext) -> dict[str, Any] | None:
         if ctx.task.tool_hint == "clinical_rag":
             return {"query": ctx.task.description, "top_k": 5}
         if ctx.task.tool_hint == "summarization":
-            text = "\n".join(result.result for result in ctx.prior_results) or ctx.task.description
+            text = "\n".join(result.result for result in ctx.prior_results if result.result.strip())
+            if not text:
+                return None
             return {"text": text}
         if ctx.task.tool_hint == "message_drafting":
             return {

@@ -279,6 +279,7 @@ def _example_prompt_response() -> dict[str, Any]:
     }
 
 
+@lru_cache(maxsize=1)
 def _architecture_png() -> bytes:
     try:
         from PIL import Image, ImageDraw, ImageFont

@@ -2,8 +2,6 @@ from src.utils.my_env import MyEnv
 
 
 def test_llm_key_falls_back_to_shared_embedder_key(monkeypatch):
-    # Keep this unit test independent of the developer's ignored local .env.
-    monkeypatch.setattr(MyEnv, "ENV_PATH", "res/configs/.env.test-missing")
     monkeypatch.delenv("LLM_KEY", raising=False)
     monkeypatch.setenv("EMBEDDER_KEY", "shared-course-key")
 

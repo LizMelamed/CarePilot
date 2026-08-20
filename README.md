@@ -25,62 +25,6 @@ Open this in a browser:
 http://127.0.0.1:8000/
 ```
 
-## Configuration
-
-Copy the tracked template, then fill the ignored local file with the team's real
-values. Never commit the resulting `.env` file.
-
-```bash
-mkdir -p res/configs
-cp .env.example res/configs/.env
-```
-
-The required remote-service fields are:
-
-```text
-LLM_URL=https://api.llmod.ai/v1
-LLM_KEY=...
-LLM_MODEL=MB5R2CF-azure/gpt-5.4-mini
-EMBEDDER_URL=https://api.llmod.ai/v1
-EMBEDDER_KEY=...
-EMBEDDER_MODEL=MB5R2CF-azure/text-embedding-3-small
-DB_URL=https://<project>.supabase.co
-DB_AUTH_TOKEN=...
-PINECONE_API_KEY=...
-PINECONE_INDEX=carepilot-clinical-rag
-```
-
-The submission metadata fields are also required:
-
-```text
-CAREPILOT_GROUP_BATCH_ORDER_NUMBER=<batch>_<presentation-order>
-CAREPILOT_TEAM_NAME=<team-name>
-CAREPILOT_STUDENTS_JSON=[{"name":"...","email":"..."}]
-CAREPILOT_DEFAULT_USERNAME=patient_1
-```
-
-On Vercel, configure these as project environment variables instead of uploading
-the local `.env` file. Team metadata is intentionally not stored in Git, so all
-three `CAREPILOT_*` metadata variables must also be configured in Vercel.
-
-## Deploy to Vercel
-
-1. Import the GitHub repository into Vercel with the repository root as the
-   project root.
-2. Add every required service and submission-metadata variable from the local
-   `.env` to the Vercel project's Production, Preview, and Development
-   environments.
-3. Deploy the final submission branch. Vercel detects the root `app.py` FastAPI
-   entry point, and the tracked `vercel.json` gives that Python function a
-   295-second maximum duration and explicitly bundles the static GUI.
-4. Verify the deployed root GUI and all four required endpoints. A localhost
-   test is not a substitute for this production check.
-
-Never commit `res/configs/.env`: it contains service credentials. Give the
-professor only the deployed Vercel URL and GitHub repository URL, as required by
-the assignment. The professor can retrieve the team details from
-`GET /api/team_info` on the deployed application.
-
 ## Use the Web UI
 
 1. Start `uvicorn`.

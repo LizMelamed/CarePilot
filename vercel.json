@@ -1,14 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/api/index"
-    }
-  ],
+  "framework": "fastapi",
+  "fluid": true,
   "functions": {
-    "api/index.py": {
-      "maxDuration": 295
+    "app.py": {
+      "maxDuration": 295,
+      "includeFiles": "static/**"
     }
   }
 }

@@ -70,9 +70,9 @@ three `CAREPILOT_*` metadata variables must also be configured in Vercel.
 2. Add every required service and submission-metadata variable from the local
    `.env` to the Vercel project's Production, Preview, and Development
    environments.
-3. Deploy the final submission branch. The tracked `vercel.json` routes the root
-   URL and all API paths through `api/index.py`, and gives the Python function a
-   295-second maximum duration.
+3. Deploy the final submission branch. Vercel detects the root `app.py` FastAPI
+   entry point, and the tracked `vercel.json` gives that Python function a
+   295-second maximum duration and explicitly bundles the static GUI.
 4. Verify the deployed root GUI and all four required endpoints. A localhost
    test is not a substitute for this production check.
 

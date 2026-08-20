@@ -1,5 +1,7 @@
 import asyncio
 
+import pytest
+
 from src.db.supabase_handler import SupabaseHandler
 
 
@@ -99,6 +101,57 @@ def test_upsert_patient_document_scopes_by_username():
     assert ("eq", "username", "patient_1") in user_query.operations
     assert file_query.operations[-1][0] == "upsert"
     assert file_query.operations[-1][1]["file_path"] == "patient_1/labs.txt"
+
+
+def test_file_record_upsert_retries_without_optional_content():
+    class ContentFallbackClient(FakeClient):
+        def table(self, name):
+            query = super().table(name)
+            original_execute = query.execute
+
+            async def execute():
+                payload = next(op[1] for op in query.operations if op[0] == "upsert")
+                if "content" in payload:
+                    raise RuntimeError("content column does not exist")
+                return await original_execute()
+
+            query.execute = execute
+            return query
+
+    client = ContentFallbackClient()
+    handler = _handler(client)
+
+    ok = asyncio.run(
+        handler._upsert_file_record(
+            {"file_path": "patient_1/labs.txt", "file_name": "labs.txt", "content": "labs"}
+        )
+    )
+
+    assert ok is True
+    assert len(client.queries) == 2
+    fallback_payload = next(op[1] for op in client.queries[1].operations if op[0] == "upsert")
+    assert "content" not in fallback_payload
+
+
+def test_file_record_upsert_reraises_unrelated_failure():
+    class BrokenQuery(FakeQuery):
+        async def execute(self):
+            raise RuntimeError("network unavailable")
+
+    class BrokenClient(FakeClient):
+        def table(self, name):
+            query = BrokenQuery(name, [])
+            self.queries.append(query)
+            return query
+
+    handler = _handler(BrokenClient())
+
+    with pytest.raises(RuntimeError, match="network unavailable"):
+        asyncio.run(
+            handler._upsert_file_record(
+                {"file_path": "patient_1/labs.txt", "file_name": "labs.txt", "content": "labs"}
+            )
+        )
 
 
 def test_get_execution_history_attaches_steps():

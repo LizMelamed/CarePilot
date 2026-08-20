@@ -1,12 +1,19 @@
 import asyncio
+from types import SimpleNamespace
 
 from langchain_core.tools import InjectedToolArg
 
 from src.db.vector_store import VectorMatch
-from src.agents.executor_agent import ExecutorAgent
+from src.agents.executor_agent import ExecutorAgent, ExecutorContext
 from src.agents.planner_agent import PlannerAgent
 from src.agents.replanner_agent import ReplannerAgent, ReplannerContext
-from src.agents.safetyguard_agent import ACTION_BLOCK, ACTION_REWRITTEN, FALLBACK_MESSAGE, SafetyGuardAgent
+from src.agents.safetyguard_agent import (
+    ACTION_BLOCK,
+    ACTION_REWRITTEN,
+    FALLBACK_MESSAGE,
+    SafetyGuardAgent,
+    SafetyGuardContext,
+)
 from src.agents.workflow_types import PlannedTask, TaskResult
 from src.tools import db_tools
 from src.tools.db_tools import GetFileArgs, GetPatientDocumentsArgs
@@ -45,7 +52,6 @@ def test_planner_parses_tasks():
 
 def test_replanner_iteration_cap_returns_done():
     ctx = ReplannerContext(
-        prompts=[],
         original_prompt="help me prepare",
         original_tasks=[PlannedTask("task_1", "read labs", "patient_db")],
         task_results=[TaskResult("task_1", "labs found", "get_patient_documents", True)],
@@ -64,7 +70,6 @@ def test_replanner_iteration_cap_returns_done():
 
 def test_replanner_fallback_with_no_usable_results_asks_for_clarification():
     ctx = ReplannerContext(
-        prompts=[],
         original_prompt="what's my referral status",
         original_tasks=[PlannedTask("task_1", "read referral", "patient_db")],
         task_results=[TaskResult("task_1", "[]", "get_patient_documents", True)],
@@ -82,7 +87,6 @@ def test_replanner_fallback_with_no_usable_results_asks_for_clarification():
 def test_replanner_parse_output_rejects_placeholder_final_answer():
     agent = ReplannerAgent.__new__(ReplannerAgent)
     ctx = ReplannerContext(
-        prompts=[],
         original_prompt="help me prepare for my meeting",
         original_tasks=[PlannedTask("task_1", "lookup", "patient_db")],
         task_results=[TaskResult("task_1", "[]", "get_patient_documents", True)],
@@ -121,6 +125,33 @@ def test_safety_guard_medication_stop_question_is_rewritten():
     assert "healthcare provider" in result["final_output"]
 
 
+def test_safety_guard_malformed_output_fails_closed_without_retry():
+    class FakeModel:
+        calls = 0
+
+        async def ainvoke(self, messages):
+            self.calls += 1
+            return SimpleNamespace(content="not json")
+
+    agent = SafetyGuardAgent.__new__(SafetyGuardAgent)
+    agent._model = FakeModel()
+    agent._logger = SimpleNamespace(error=lambda *args: None, exception=lambda *args: None)
+
+    result = asyncio.run(
+        agent.act(
+            SafetyGuardContext(
+                query="What do my records say?",
+                draft_response="Draft",
+                documents=[],
+            )
+        )
+    )
+
+    assert agent._model.calls == 1
+    assert result["action_taken"] == ACTION_BLOCK
+    assert result["final_output"] == FALLBACK_MESSAGE
+
+
 def test_patient_tool_username_is_injected_metadata():
     for schema in (GetFileArgs, GetPatientDocumentsArgs):
         field = schema.model_fields["username"]
@@ -131,6 +162,28 @@ def test_patient_tool_username_is_injected_metadata():
 def test_executor_marks_patient_db_tool_as_patient_scoped():
     assert ExecutorAgent._is_patient_tool("get_patient_documents") is True
     assert ExecutorAgent._is_patient_tool("query_clinical_rag") is False
+
+
+def test_executor_does_not_summarize_task_description_without_source_text():
+    ctx = ExecutorContext(
+        username="patient_1",
+        task=PlannedTask("task_1", "Summarize my records", "summarization"),
+        step_order=2,
+        prior_results=[],
+    )
+
+    assert ExecutorAgent._args_for_hint(ctx) is None
+
+
+def test_executor_summarizes_prior_results_only():
+    ctx = ExecutorContext(
+        username="patient_1",
+        task=PlannedTask("task_2", "Summarize my records", "summarization"),
+        step_order=3,
+        prior_results=[TaskResult("task_1", "Actual patient record", "get_file", True)],
+    )
+
+    assert ExecutorAgent._args_for_hint(ctx) == {"text": "Actual patient record"}
 
 
 def test_executor_fallback_tool_answer_hides_raw_document_json():

@@ -42,4 +42,17 @@ class AgentStep:
     step_order: int
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        """Return the grader-facing execution-trace schema.
+
+        ``step_order`` remains an internal ordering aid on the dataclass. The public
+        API contract defines only ``module``, nested ``prompt``, and ``response``.
+        Supabase preserves ordering from the list position when persisting steps.
+        """
+        return {
+            "module": self.module,
+            "prompt": {
+                "System_prompt": self.system_prompt,
+                "User_prompt": self.user_prompt,
+            },
+            "response": self.response,
+        }

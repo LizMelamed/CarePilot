@@ -1,4 +1,7 @@
 /res/configs/.env
+.venv/
+.venv-*/
+.pytest_cache/
 /data/clinical_corpus/*
 !/data/clinical_corpus/.gitkeep
 !/data/clinical_corpus/README.md

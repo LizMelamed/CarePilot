@@ -2,7 +2,7 @@ import json
 import re
 from dataclasses import dataclass
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
 from src.agents.agent import BaseAgent, AgentContext
@@ -86,36 +86,19 @@ class SafetyGuardAgent(BaseAgent):
                 "final_output": FALLBACK_MESSAGE,
             }
 
-        messages: list = [instructions, given_input]
-        for attempt in range(self._MAX_ATTEMPTS):
-            output_resp = await self._model.ainvoke(messages)
+        output_resp = await self._model.ainvoke([instructions, given_input])
+        if output_resp is None or output_resp.content is None:
+            self._logger.error("Failed to retrieve output from SafetyGuard agent.")
+            return fallback_result
 
-            if output_resp is None or output_resp.content is None:
-                self._logger.error("Failed to retrieve output from SafetyGuard agent.")
-                continue
-            output = output_resp.content
+        result = self._try_parse(output_resp.content)
+        if result is not None:
+            return result
 
-            result = self._try_parse(output)
-            if result is not None:
-                return result
-
-            # Small local models occasionally ignore the strict-JSON instruction entirely -- give it
-            # one more chance with a sharper reminder before falling back to the safe default.
-            messages = [
-                instructions,
-                given_input,
-                AIMessage(str(output)),
-                HumanMessage(
-                    "Your previous reply was not a single valid JSON object matching the required "
-                    "schema. Reply again with ONLY that raw JSON object -- no prose, no markdown, "
-                    "no explanation before or after it."
-                ),
-            ]
-
-        self._logger.error(f"SafetyGuard agent did not return valid JSON after {self._MAX_ATTEMPTS} attempts.")
+        # Do not make an untraced retry: malformed output fails closed without
+        # spending the budget on another LLM call.
+        self._logger.error("SafetyGuard agent did not return valid JSON.")
         return fallback_result
-
-    _MAX_ATTEMPTS = 1
 
     def _try_parse(self, output: str) -> dict | None:
         cleaned = self._strip_markdown_fence(self._strip_reasoning_trace(output))

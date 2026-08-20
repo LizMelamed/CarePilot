@@ -69,13 +69,17 @@ class SupabaseHandler(DBHandler):
 
         try:
 
-            # get user_id
+            # get user_id, creating the patient record if it doesn't exist yet
             response = await client.table("users").select("id").eq("username", username).execute()
             if not response or not response.data:
-                self._logger.error(f"User '{username}' not found.")
-                return False
-            rows = response.data
-            user_id = rows[0].get("id")
+                self._logger.warning(f"User '{username}' not found; creating it.")
+                user_id = await self.upsert_patient_profile(username, {})
+                if user_id is None:
+                    self._logger.error(f"Failed to create user '{username}'.")
+                    return False
+            else:
+                rows = response.data
+                user_id = rows[0].get("id")
 
             self._logger.info(f"Uploading file: '{file_path}'.")
 
@@ -186,32 +190,6 @@ class SupabaseHandler(DBHandler):
                     .limit(limit)
                     .execute()
                 )
-
-    async def _upsert_file_record_with_optional_content(self, payload: dict[str, Any]) -> bool:
-        try:
-            response = await (
-                self._db.table("files")
-                .upsert(payload, on_conflict="file_path")
-                .execute()
-            )
-            return bool(response and response.data)
-        except Exception as e:
-            if "content" not in payload or "content" not in str(e).lower():
-                raise
-            fallback_payload = {key: value for key, value in payload.items() if key != "content"}
-            response = await (
-                self._db.table("files")
-                .upsert(fallback_payload, on_conflict="file_path")
-                .execute()
-            )
-            return bool(response and response.data)
-
-        except StorageException as e:
-            self._logger.exception(f"Storage API Error: {e}")
-            return False
-        except Exception as e:
-            self._logger.exception(f"Unexpected Error during file record upsert: {e}")
-            return False
 
     async def delete_file(self, username: str, file_name: str) -> bool:
         client: AsyncClient = self._db
@@ -510,10 +488,14 @@ class SupabaseHandler(DBHandler):
                 .execute()
             )
             if not user_response or not user_response.data:
-                self._logger.error(f"User '{username}' not found.")
-                return False
+                self._logger.warning(f"User '{username}' not found; creating it.")
+                user_id = await self.upsert_patient_profile(username, {})
+                if user_id is None:
+                    self._logger.error(f"Failed to create user '{username}'.")
+                    return False
+            else:
+                user_id = user_response.data[0].get("id")
 
-            user_id = user_response.data[0].get("id")
             payload = {
                 "user_id": user_id,
                 "file_path": self.__file_path(username, file_name),
@@ -521,7 +503,7 @@ class SupabaseHandler(DBHandler):
                 "content": content,
                 "metadata": metadata or {},
             }
-            return await self._upsert_file_record_with_optional_content(payload)
+            return await self._upsert_file_record(payload)
         except Exception as e:
             self._logger.exception(f"Unexpected Error during patient document upsert: {e}")
             return False
@@ -663,11 +645,17 @@ class SupabaseHandler(DBHandler):
         if not module:
             raise ValueError("Execution step is missing required field: module")
 
+        prompt = step.get("prompt")
+        if not isinstance(prompt, dict):
+            prompt = {}
+
         return {
             "execution_id": execution_id,
             "module": module,
-            "system_prompt": step.get("system_prompt"),
-            "user_prompt": step.get("user_prompt"),
+            # Accept the current public schema and the legacy flat schema so old
+            # callers and stored fixtures remain compatible during migration.
+            "system_prompt": prompt.get("System_prompt", step.get("system_prompt")),
+            "user_prompt": prompt.get("User_prompt", step.get("user_prompt")),
             "response": step.get("response"),
             "step_order": step.get("step_order", default_step_order),
         }

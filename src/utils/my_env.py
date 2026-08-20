@@ -88,7 +88,11 @@ class MyEnv(metaclass=SingletonMeta):
         Get the API key of the LLM service.
         :return: The API key of the LLM service, otherwise None.
         """
-        return self.get(self.LLM_KEY_FIELD)
+        # The course provides one shared group key for both the text and
+        # embedding models. Historical team configuration stored that value as
+        # EMBEDDER_KEY only, so retain backwards compatibility without copying
+        # the secret into a second field.
+        return self.get(self.LLM_KEY_FIELD) or self.get(self.EMBEDDER_KEY_FIELD)
 
     def get_llm_model(self):
         """

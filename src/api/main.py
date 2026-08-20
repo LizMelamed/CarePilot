@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import io
 import json
 import os
 from functools import lru_cache
@@ -21,7 +20,7 @@ from src.carepilot.orchestrator import CarePilotOrchestrator
 
 SAFETY_MODULE = "SafetyGuardLLM"
 EXECUTE_TIMEOUT_SECONDS = 295
-
+_ARCHITECTURE_PNG_PATH = Path(__file__).resolve().parents[2] / "static" / "model_architecture.png"
 app = FastAPI(title="CarePilot API")
 
 
@@ -32,7 +31,7 @@ class ExecuteRequest(BaseModel):
 class ExecuteResponse(BaseModel):
     status: str
     error: str | None
-    response: str
+    response: str | None
     steps: list[dict[str, Any]]
 
 
@@ -166,7 +165,7 @@ async def agent_info() -> dict[str, Any]:
 
 @app.get("/api/model_architecture")
 async def model_architecture() -> Response:
-    return Response(content=_architecture_png(), media_type="image/png")
+    return Response(content=_ARCHITECTURE_PNG_PATH.read_bytes(), media_type="image/png")
 
 
 @app.post("/api/execute", response_model=ExecuteResponse)
@@ -181,23 +180,23 @@ async def execute(
             timeout=EXECUTE_TIMEOUT_SECONDS,
         )
         return ExecuteResponse(
-            status=result.status,
+            status="ok" if result.status == "success" else "error",
             error=result.error,
-            response=result.response,
+            response=result.response if result.status == "success" else None,
             steps=result.steps,
         )
     except asyncio.TimeoutError:
         return ExecuteResponse(
             status="error",
             error="Execution timed out.",
-            response="I'm sorry, but I could not complete this request within the allowed time.",
+            response=None,
             steps=[],
         )
     except Exception as e:
         return ExecuteResponse(
             status="error",
             error=str(e),
-            response="I'm sorry, but I could not complete this request due to a server error.",
+            response=None,
             steps=[],
         )
 
@@ -226,8 +225,10 @@ def _example_prompt_response() -> dict[str, Any]:
     steps = [
         {
             "module": PLANNING_MODULE,
-            "system_prompt": PLANNER_SYSTEM_PROMPT.strip(),
-            "user_prompt": json.dumps({"patient_prompt": prompt}, ensure_ascii=True),
+            "prompt": {
+                "System_prompt": PLANNER_SYSTEM_PROMPT.strip(),
+                "User_prompt": json.dumps({"patient_prompt": prompt}, ensure_ascii=True),
+            },
             "response": json.dumps(
                 {
                     "tasks": [
@@ -245,28 +246,30 @@ def _example_prompt_response() -> dict[str, Any]:
                 },
                 ensure_ascii=True,
             ),
-            "step_order": 1,
         },
         {
             "module": EXECUTOR_MODULE,
-            "system_prompt": "Executes one planned task with injected patient identity.",
-            "user_prompt": json.dumps({"task_id": "task_1", "tool_hint": "patient_db"}, ensure_ascii=True),
+            "prompt": {
+                "System_prompt": "Executes one planned task with injected patient identity.",
+                "User_prompt": json.dumps({"task_id": "task_1", "tool_hint": "patient_db"}, ensure_ascii=True),
+            },
             "response": "Patient DB documents reviewed for appointment preparation.",
-            "step_order": 2,
         },
         {
             "module": REPLANNER_MODULE,
-            "system_prompt": "Checks whether more tasks are needed.",
-            "user_prompt": json.dumps({"completed_tasks": ["task_1", "task_2"]}, ensure_ascii=True),
+            "prompt": {
+                "System_prompt": "Checks whether more tasks are needed.",
+                "User_prompt": json.dumps({"completed_tasks": ["task_1", "task_2"]}, ensure_ascii=True),
+            },
             "response": json.dumps({"done": True, "final_answer_context": "Bring recent labs, medication list, referral status, and insurance letters."}, ensure_ascii=True),
-            "step_order": 3,
         },
         {
             "module": SAFETY_MODULE,
-            "system_prompt": SAFETY_PROMPT.strip(),
-            "user_prompt": json.dumps({"query": prompt}, ensure_ascii=True),
+            "prompt": {
+                "System_prompt": SAFETY_PROMPT.strip(),
+                "User_prompt": json.dumps({"query": prompt}, ensure_ascii=True),
+            },
             "response": json.dumps({"action_taken": "PASS", "final_output": "Bring your recent lab results, medication list, referral status, and insurance letters. Ask your care team which symptoms should prompt urgent contact."}, ensure_ascii=True),
-            "step_order": 4,
         },
     ]
     return {
@@ -274,65 +277,6 @@ def _example_prompt_response() -> dict[str, Any]:
         "full_response": "Bring your recent lab results, medication list, referral status, and insurance letters. Ask your care team which symptoms should prompt urgent contact.",
         "steps": steps,
     }
-
-
-def _architecture_png() -> bytes:
-    try:
-        from PIL import Image, ImageDraw, ImageFont
-    except ImportError:
-        return _minimal_png()
-
-    width, height = 1400, 520
-    image = Image.new("RGB", (width, height), "white")
-    draw = ImageDraw.Draw(image)
-    font = ImageFont.load_default()
-    boxes = [
-        ("Patient", 40, 200, 160, 270),
-        (PLANNING_MODULE, 230, 200, 410, 270),
-        ("Task List", 480, 200, 620, 270),
-        (EXECUTOR_MODULE, 690, 180, 930, 290),
-        ("Tools", 760, 340, 860, 410),
-        (REPLANNER_MODULE, 1000, 200, 1160, 270),
-        (SAFETY_MODULE, 1220, 200, 1380, 270),
-    ]
-    for label, x1, y1, x2, y2 in boxes:
-        draw.rectangle((x1, y1, x2, y2), outline="black", width=3)
-        draw.text((x1 + 12, y1 + 24), label, fill="black", font=font)
-
-    arrows = [
-        ((160, 235), (230, 235)),
-        ((410, 235), (480, 235)),
-        ((620, 235), (690, 235)),
-        ((930, 235), (1000, 235)),
-        ((1160, 235), (1220, 235)),
-        ((1220, 270), (160, 310)),
-        ((810, 290), (810, 340)),
-        ((860, 340), (900, 290)),
-    ]
-    for start, end in arrows:
-        _draw_arrow(draw, start, end)
-
-    output = io.BytesIO()
-    image.save(output, format="PNG")
-    return output.getvalue()
-
-
-def _draw_arrow(draw, start: tuple[int, int], end: tuple[int, int]) -> None:
-    draw.line((start, end), fill="black", width=2)
-    x1, y1 = start
-    x2, y2 = end
-    if x2 >= x1:
-        head = [(x2, y2), (x2 - 10, y2 - 6), (x2 - 10, y2 + 6)]
-    else:
-        head = [(x2, y2), (x2 + 10, y2 - 6), (x2 + 10, y2 + 6)]
-    draw.polygon(head, fill="black")
-
-
-def _minimal_png() -> bytes:
-    return bytes.fromhex(
-        "89504e470d0a1a0a0000000d4948445200000001000000010802000000907753de"
-        "0000000c49444154789c63606060000000040001f61738550000000049454e44ae426082"
-    )
 
 
 _STATIC_DIR = Path(__file__).resolve().parents[2] / "static"

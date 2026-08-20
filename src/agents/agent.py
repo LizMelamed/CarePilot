@@ -2,7 +2,6 @@ from abc import abstractmethod, ABC
 from dataclasses import dataclass
 from typing import Dict
 
-from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.tools import BaseTool
 from langchain_openai import ChatOpenAI
 
@@ -11,11 +10,7 @@ from src.utils.my_env import MyEnv
 
 @dataclass
 class AgentContext:
-    """
-    Context for the BaseAgent class.
-    """
-    prompts: list[HumanMessage|AIMessage]
-    """List of prompts that the agent needs to perform the action."""
+    """Shared marker type for agent-specific contexts."""
 
 class BaseAgent(ABC):
     """
@@ -62,9 +57,8 @@ class BaseAgent(ABC):
     @abstractmethod
     async def act(self, ctx: AgentContext):
         """
-        Performs an action given a list of prompts.
-        :param ctx: context object containing the relevant information the agent
-            needs in order to perform the action.
+        Performs an action for an agent-specific context.
+        :param ctx: context containing the information needed for the action.
         :return: The result of the action.
         """
         raise NotImplementedError

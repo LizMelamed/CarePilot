@@ -4,7 +4,7 @@ langchain-core==1.4.0
 langchain-openai==1.2.2
 langchain-text-splitters==1.1.2
 markdownify==1.2.2
-markitdown==0.1.6
+markitdown[pdf]==0.1.6
 pillow==12.3.0
 pinecone==9.0.1
 pydantic==2.13.4

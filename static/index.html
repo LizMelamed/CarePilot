@@ -661,6 +661,235 @@
     .content { padding: 20px 16px 48px; }
   }
 </style>
+<style>
+  /* ---------- CarePilot presentation identity ---------- */
+  :root {
+    --bg: #f3f3ee;
+    --bg-inset: #e8eee9;
+    --panel: #fffefb;
+    --panel-hover: #f9faf6;
+    --border: #d9e2dc;
+    --border-strong: #b8ccc4;
+    --text: #183b39;
+    --muted: #5f7470;
+    --muted-2: #80938f;
+    --accent: #2f7471;
+    --accent-hover: #245e5c;
+    --accent-soft: #dcebe6;
+    --accent-soft-border: #bfd8cf;
+    --success: #2f7471;
+    --success-soft: #e1eee8;
+    --error: #9d453e;
+    --error-soft: #f7e8e5;
+    --warn: #8b682d;
+    --warn-soft: #f4ecda;
+    --focus-ring: #2f7471;
+    --radius-sm: 12px;
+    --radius-md: 17px;
+    --radius-lg: 24px;
+    --shadow-sm: 0 1px 2px rgba(24, 59, 57, 0.04), 0 8px 24px rgba(24, 59, 57, 0.04);
+    --shadow-md: 0 16px 38px rgba(24, 59, 57, 0.12);
+    --shadow-lg: 0 28px 70px rgba(24, 59, 57, 0.18);
+    --sidebar-w: 270px;
+  }
+
+  body {
+    font-family: "Bricolage Grotesque", "Aptos", "Segoe UI", sans-serif;
+    background:
+      radial-gradient(circle at 88% 8%, rgba(196, 220, 211, 0.42), transparent 24rem),
+      var(--bg);
+  }
+
+  h1, h2, h3, h4 { color: var(--text); font-weight: 650; letter-spacing: -0.035em; }
+
+  .sidebar {
+    background: var(--accent);
+    border-right: 0;
+    padding: 30px 20px 24px;
+    color: #fff;
+  }
+  .sidebar-brand {
+    display: block;
+    padding: 3px 12px 34px;
+  }
+  .brand-kicker {
+    color: #cfe3dc;
+    font-size: 0.6rem;
+    font-weight: 750;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+  .brand-wordmark {
+    color: #fff;
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 1.7rem;
+    font-weight: 600;
+    letter-spacing: -0.045em;
+  }
+  .brand-rule {
+    width: 30px;
+    height: 1px;
+    margin-top: 15px;
+    background: rgba(255,255,255,0.52);
+  }
+  .nav-group { gap: 7px; }
+  .nav-item {
+    padding: 12px 14px;
+    border-radius: 999px;
+    color: rgba(255,255,255,0.72);
+    font-size: 0.88rem;
+    font-weight: 600;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.10); color: #fff; }
+  .nav-item[aria-current="page"] { background: #fffefb; color: var(--accent); }
+  .sidebar-footer { border-top-color: rgba(255,255,255,0.18); }
+  .sidebar-user { padding: 10px 12px; }
+  .sidebar-user .who .name { color: #fff; }
+  .sidebar-user .who .role { color: rgba(255,255,255,0.62); }
+  .sidebar .avatar {
+    background: rgba(255,255,255,0.14);
+    border-color: rgba(255,255,255,0.22);
+    color: #fff;
+  }
+
+  .topbar {
+    padding: 24px 42px 18px;
+    border-bottom: 0;
+    background: rgba(243, 243, 238, 0.88);
+    backdrop-filter: blur(14px);
+  }
+  .topbar h2 { font-family: "Playfair Display", Georgia, serif; font-size: 1.24rem; font-weight: 600; }
+  .topbar p { color: var(--muted); margin-top: 5px; }
+  .content { max-width: 1060px; padding: 28px 42px 76px; }
+
+  .ask-hero { margin: 10px 0 30px; max-width: 780px; }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--accent);
+    font-size: 0.68rem;
+    font-weight: 750;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .eyebrow::before { content: ""; width: 24px; height: 1px; background: currentColor; }
+  .ask-hero h1 {
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: clamp(2.15rem, 4vw, 3.35rem);
+    line-height: 1.02;
+    font-weight: 600;
+    margin: 0;
+    max-width: 690px;
+  }
+  .ask-hero p {
+    margin: 16px 0 0;
+    color: var(--muted);
+    line-height: 1.65;
+    max-width: 620px;
+    font-size: 0.98rem;
+  }
+
+  .prompt-shell {
+    border: 1px solid var(--border-strong);
+    border-radius: 25px;
+    padding: 8px;
+    box-shadow: 0 18px 50px rgba(24, 59, 57, 0.09);
+  }
+  textarea { min-height: 126px; padding: 19px 20px; font-size: 1rem; line-height: 1.65; }
+  .prompt-toolbar { border-top: 1px solid var(--border); padding: 11px 12px 4px 16px; }
+  .btn { border-radius: 999px; padding: 11px 20px; }
+  .btn-primary { background: var(--accent); box-shadow: 0 8px 18px rgba(47,116,113,0.2); }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
+  .btn-secondary { background: transparent; border-color: var(--border-strong); }
+  .btn-ghost { border-radius: 999px; }
+
+  .example-chips { margin-top: 16px; gap: 9px; }
+  .example-chips { scrollbar-width: none; }
+  .example-chips::-webkit-scrollbar { display: none; }
+  .example-chip {
+    border: 1px solid var(--border-strong);
+    background: rgba(255,254,251,0.62);
+    color: var(--accent);
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-weight: 600;
+  }
+  .example-chip:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .status-row { margin-top: 17px; color: var(--accent); }
+
+  .card {
+    border-color: var(--border);
+    border-radius: var(--radius-lg);
+    padding: 27px 29px;
+    box-shadow: var(--shadow-sm);
+  }
+  .card + .card { margin-top: 18px; }
+  .card h3 { font-family: "Playfair Display", Georgia, serif; font-size: 1.3rem; font-weight: 600; }
+  .card .card-sub { line-height: 1.55; }
+  section.result { margin-top: 30px; }
+  section.result .card:first-child { border-top: 5px solid var(--accent); }
+  .response-text { font-family: "Aptos", "Segoe UI", sans-serif; color: #273f3d; }
+
+  details.step { background: #f0f3ef; border-color: transparent; border-radius: 15px; padding: 2px 16px; }
+  details.step summary { color: var(--text); padding: 13px 0; }
+  details.step summary .order {
+    background: var(--accent);
+    color: #fff;
+    border-radius: 999px;
+    padding: 3px 9px;
+  }
+  .step-block pre { background: #fff; border-color: var(--border); border-radius: 13px; }
+
+  .dropzone {
+    border-color: var(--border-strong);
+    background: #eef2ed;
+    padding: 44px 20px;
+  }
+  .dropzone:hover, .dropzone.dragover { background: var(--accent-soft); }
+  .dropzone .dz-icon {
+    width: 48px; height: 48px; padding: 12px;
+    background: var(--accent); color: #fff; border-radius: 50%;
+  }
+  .doc-row { border-color: transparent; background: #f0f3ef; padding: 15px 16px; }
+  .doc-row:hover { border-color: var(--border-strong); background: #fff; }
+  .doc-icon { border-radius: 50%; background: var(--accent); color: #fff; }
+
+  .badge { text-transform: none; letter-spacing: 0; border-radius: 999px; }
+  .detail-item { background: #edf1ed; border-color: transparent; }
+  .account-avatar-row .avatar { background: var(--accent); color: #fff; border: 0; }
+
+  .toast { border: 0; border-left: 5px solid var(--accent); border-radius: 14px; }
+  .modal-overlay { background: rgba(20, 52, 50, 0.54); backdrop-filter: blur(4px); }
+  .modal { border: 1px solid rgba(255,255,255,0.5); }
+
+  .mobile-topbar { background: var(--accent); color: #fff; border-bottom: 0; }
+  .mobile-brand { display: flex; flex-direction: column; line-height: 1; }
+  .mobile-brand small { color: #cfe3dc; font-size: 0.48rem; letter-spacing: 0.18em; margin-bottom: 4px; }
+  .mobile-brand strong { font-family: "Playfair Display", Georgia, serif; font-size: 1.08rem; }
+
+  @media (max-width: 860px) {
+    body { background: var(--bg); }
+    .mobile-nav { background: var(--accent); border-bottom: 0; padding: 0 12px 10px; }
+    .mobile-nav .nav-item { color: rgba(255,255,255,0.72); padding: 8px 13px; }
+    .mobile-nav .nav-item[aria-current="page"] { color: var(--accent); background: #fff; }
+    .topbar { padding: 20px 20px 13px; }
+    .content { padding: 18px 16px 52px; }
+    .ask-hero { margin-top: 4px; }
+    .ask-hero h1 { font-size: 2.25rem; }
+    .card { padding: 22px 20px; }
+  }
+
+  @media (max-width: 520px) {
+    .prompt-toolbar { align-items: flex-end; }
+    .char-count { max-width: 110px; }
+    .example-chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 5px; }
+    .example-chip { flex: none; }
+    .detail-grid { grid-template-columns: 1fr; }
+  }
+</style>
 </head>
 <body>
 
@@ -668,8 +897,9 @@
 <div id="app">
   <aside class="sidebar">
     <div class="sidebar-brand">
-      <div class="logo-mark">CP</div>
-      <span>CarePilot</span>
+      <div class="brand-kicker">AI Agent</div>
+      <div class="brand-wordmark">CarePilot</div>
+      <div class="brand-rule"></div>
     </div>
     <nav class="nav-group" aria-label="Primary">
       <button class="nav-item" data-view="ask" aria-current="page">
@@ -698,8 +928,8 @@
 
   <div class="main-col">
     <div class="mobile-topbar">
-      <div style="display:flex; align-items:center; gap:8px;">
-        <div class="logo-mark" style="width:28px;height:28px;font-size:0.8rem;">CP</div>
+      <div class="mobile-brand">
+        <small>AI AGENT</small>
         <strong>CarePilot</strong>
       </div>
     </div>
@@ -720,6 +950,11 @@
 
       <!-- ---- Ask view ---- -->
       <section class="view active" id="view-ask">
+        <div class="ask-hero">
+          <div class="eyebrow">One place for what matters</div>
+          <h1>What can we help you navigate today?</h1>
+          <p>Ask about your records, upcoming care, referrals, or next steps. CarePilot brings the details together and explains them in plain language.</p>
+        </div>
         <div class="prompt-shell">
           <label for="prompt-input" class="visually-hidden">Your question</label>
           <textarea id="prompt-input" placeholder="e.g. I have a checkup tomorrow, help me prepare."></textarea>

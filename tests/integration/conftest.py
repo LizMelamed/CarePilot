@@ -7,8 +7,6 @@ a configured remote stack. Run explicitly with: python -m pytest tests/integrati
 
 from __future__ import annotations
 
-import asyncio
-
 import pytest
 import requests
 
@@ -31,7 +29,4 @@ def remote_llm_available() -> None:
 
 @pytest.fixture(scope="session")
 def clinical_index_ready(remote_llm_available) -> None:
-    """Build the remote clinical index so query_clinical_rag has data."""
-    from src.scripts.build_clinical_index import _build_index
-
-    asyncio.run(_build_index())
+    """The clinical index already lives in Pinecone; query it as-is instead of rebuilding it."""

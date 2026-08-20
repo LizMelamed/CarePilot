@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import io
 import json
 import os
 from functools import lru_cache
@@ -21,6 +20,7 @@ from src.carepilot.orchestrator import CarePilotOrchestrator
 
 SAFETY_MODULE = "SafetyGuardLLM"
 EXECUTE_TIMEOUT_SECONDS = 295
+_ARCHITECTURE_PNG_PATH = Path(__file__).resolve().parents[2] / "static" / "model_architecture.png"
 app = FastAPI(title="CarePilot API")
 
 
@@ -165,7 +165,7 @@ async def agent_info() -> dict[str, Any]:
 
 @app.get("/api/model_architecture")
 async def model_architecture() -> Response:
-    return Response(content=_architecture_png(), media_type="image/png")
+    return Response(content=_ARCHITECTURE_PNG_PATH.read_bytes(), media_type="image/png")
 
 
 @app.post("/api/execute", response_model=ExecuteResponse)
@@ -277,115 +277,6 @@ def _example_prompt_response() -> dict[str, Any]:
         "full_response": "Bring your recent lab results, medication list, referral status, and insurance letters. Ask your care team which symptoms should prompt urgent contact.",
         "steps": steps,
     }
-
-
-@lru_cache(maxsize=1)
-def _architecture_png() -> bytes:
-    try:
-        from PIL import Image, ImageDraw, ImageFont
-    except ImportError:
-        return _minimal_png()
-
-    width, height = 1600, 820
-    image = Image.new("RGB", (width, height), "#F4F7FB")
-    draw = ImageDraw.Draw(image)
-    title_font = _architecture_font(ImageFont, 40, bold=True)
-    subtitle_font = _architecture_font(ImageFont, 22)
-    box_font = _architecture_font(ImageFont, 22, bold=True)
-    detail_font = _architecture_font(ImageFont, 17)
-
-    draw.text((70, 55), "CarePilot Agent Architecture", fill="#17233A", font=title_font)
-    draw.text(
-        (70, 112),
-        "Minimal plan-execute-replan pipeline with grounded retrieval and final safety review",
-        fill="#53627A",
-        font=subtitle_font,
-    )
-
-    boxes = [
-        ("Patient request", 55, 270, 235, 385, "#E8F0FE", "#2F6FED"),
-        (PLANNING_MODULE, 300, 255, 525, 400, "#FFFFFF", "#2F6FED"),
-        (EXECUTOR_MODULE, 605, 255, 915, 400, "#FFFFFF", "#2F6FED"),
-        (REPLANNER_MODULE, 995, 255, 1215, 400, "#FFFFFF", "#2F6FED"),
-        (SAFETY_MODULE, 1285, 255, 1515, 400, "#E7F7EF", "#157A4F"),
-    ]
-    for label, x1, y1, x2, y2, fill, outline in boxes:
-        draw.rounded_rectangle((x1, y1, x2, y2), radius=18, fill=fill, outline=outline, width=4)
-        _draw_centered_text(draw, label, (x1, y1, x2, y2), box_font, "#17233A")
-
-    for start, end in [
-        ((235, 327), (300, 327)),
-        ((525, 327), (605, 327)),
-        ((915, 327), (995, 327)),
-        ((1215, 327), (1285, 327)),
-    ]:
-        _draw_arrow(draw, start, end, fill="#53627A", width=4)
-
-    draw.text((336, 420), "creates the smallest useful task list", fill="#53627A", font=detail_font)
-    draw.text((664, 420), "executes one task at a time", fill="#53627A", font=detail_font)
-    draw.text((1017, 420), "only when more work is needed", fill="#53627A", font=detail_font)
-
-    tool_boxes = [
-        ("Patient records\nSupabase", 555, 570, 790, 700),
-        ("Clinical RAG\nPinecone", 815, 570, 1050, 700),
-        ("Text tools\nDeterministic", 1075, 570, 1310, 700),
-    ]
-    draw.text((555, 505), "Executor tools", fill="#17233A", font=box_font)
-    for label, x1, y1, x2, y2 in tool_boxes:
-        draw.rounded_rectangle((x1, y1, x2, y2), radius=16, fill="#FFFFFF", outline="#9AA8BC", width=3)
-        _draw_centered_text(draw, label, (x1, y1, x2, y2), detail_font, "#17233A")
-        _draw_arrow(draw, ((x1 + x2) // 2, y1), (760, 400), fill="#7B8798", width=3)
-
-    # Replanning feeds a revised task back to the executor without crossing the
-    # main request/response path.
-    draw.line((1105, 255, 1105, 205, 760, 205, 760, 255), fill="#8A5B00", width=4)
-    _draw_arrow(draw, (800, 205), (760, 255), fill="#8A5B00", width=4)
-    draw.text((864, 170), "revised task", fill="#8A5B00", font=detail_font)
-
-    output = io.BytesIO()
-    image.save(output, format="PNG")
-    return output.getvalue()
-
-
-def _architecture_font(image_font, size: int, bold: bool = False):
-    try:
-        family = "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf"
-        return image_font.truetype(family, size=size)
-    except OSError:
-        return image_font.load_default()
-
-
-def _draw_centered_text(draw, text: str, box: tuple[int, int, int, int], font, fill: str) -> None:
-    x1, y1, x2, y2 = box
-    left, top, right, bottom = draw.multiline_textbbox((0, 0), text, font=font, align="center", spacing=7)
-    width = right - left
-    height = bottom - top
-    draw.multiline_text(
-        (x1 + (x2 - x1 - width) / 2, y1 + (y2 - y1 - height) / 2),
-        text,
-        fill=fill,
-        font=font,
-        align="center",
-        spacing=7,
-    )
-
-
-def _draw_arrow(draw, start: tuple[int, int], end: tuple[int, int], fill: str = "black", width: int = 2) -> None:
-    draw.line((start, end), fill=fill, width=width)
-    x1, y1 = start
-    x2, y2 = end
-    if x2 >= x1:
-        head = [(x2, y2), (x2 - 10, y2 - 6), (x2 - 10, y2 + 6)]
-    else:
-        head = [(x2, y2), (x2 + 10, y2 - 6), (x2 + 10, y2 + 6)]
-    draw.polygon(head, fill=fill)
-
-
-def _minimal_png() -> bytes:
-    return bytes.fromhex(
-        "89504e470d0a1a0a0000000d4948445200000001000000010802000000907753de"
-        "0000000c49444154789c63606060000000040001f61738550000000049454e44ae426082"
-    )
 
 
 _STATIC_DIR = Path(__file__).resolve().parents[2] / "static"

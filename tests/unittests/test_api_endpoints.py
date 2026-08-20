@@ -87,13 +87,10 @@ def test_agent_info_shape():
 
 
 def test_model_architecture_png():
-    api_main._architecture_png.cache_clear()
     response = asyncio.run(api_main.model_architecture())
-    asyncio.run(api_main.model_architecture())
 
     assert response.media_type == "image/png"
     assert response.body.startswith(b"\x89PNG")
-    assert api_main._architecture_png.cache_info().hits == 1
 
 
 def test_execute_shape(monkeypatch):

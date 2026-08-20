@@ -69,13 +69,17 @@ class SupabaseHandler(DBHandler):
 
         try:
 
-            # get user_id
+            # get user_id, creating the patient record if it doesn't exist yet
             response = await client.table("users").select("id").eq("username", username).execute()
             if not response or not response.data:
-                self._logger.error(f"User '{username}' not found.")
-                return False
-            rows = response.data
-            user_id = rows[0].get("id")
+                self._logger.warning(f"User '{username}' not found; creating it.")
+                user_id = await self.upsert_patient_profile(username, {})
+                if user_id is None:
+                    self._logger.error(f"Failed to create user '{username}'.")
+                    return False
+            else:
+                rows = response.data
+                user_id = rows[0].get("id")
 
             self._logger.info(f"Uploading file: '{file_path}'.")
 
@@ -484,10 +488,14 @@ class SupabaseHandler(DBHandler):
                 .execute()
             )
             if not user_response or not user_response.data:
-                self._logger.error(f"User '{username}' not found.")
-                return False
+                self._logger.warning(f"User '{username}' not found; creating it.")
+                user_id = await self.upsert_patient_profile(username, {})
+                if user_id is None:
+                    self._logger.error(f"Failed to create user '{username}'.")
+                    return False
+            else:
+                user_id = user_response.data[0].get("id")
 
-            user_id = user_response.data[0].get("id")
             payload = {
                 "user_id": user_id,
                 "file_path": self.__file_path(username, file_name),

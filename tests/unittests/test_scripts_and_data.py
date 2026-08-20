@@ -1,7 +1,14 @@
 import json
+from pathlib import Path
 
 from src.scripts.build_clinical_index import _read_markdown_with_metadata
 from src.scripts.generate_synthetic_patients import PATIENTS, _patient_docs
+
+
+def test_requirements_include_pdf_document_support():
+    requirements = Path("requirements.txt").read_text(encoding="utf-8").splitlines()
+
+    assert "markitdown[pdf]==0.1.6" in requirements
 
 
 def test_synthetic_patient_templates_cover_required_categories():

@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from langchain_core.tools import InjectedToolArg
 
 from src.db.vector_store import VectorMatch
+from src.agents.agent import BaseAgent
 from src.agents.executor_agent import ExecutorAgent, ExecutorContext
 from src.agents.planner_agent import PlannerAgent
 from src.agents.replanner_agent import ReplannerAgent, ReplannerContext
@@ -150,6 +151,35 @@ def test_safety_guard_malformed_output_fails_closed_without_retry():
     assert agent._model.calls == 1
     assert result["action_taken"] == ACTION_BLOCK
     assert result["final_output"] == FALLBACK_MESSAGE
+
+
+def test_safety_guard_model_does_not_send_provider_specific_think_parameter(monkeypatch):
+    bound_options = {}
+
+    class AzureCompatibleFakeModel:
+        def __init__(self, **kwargs):
+            self.options = kwargs
+
+        def bind(self, **kwargs):
+            if kwargs.get("extra_body", {}).get("think") is not None:
+                raise ValueError("Unknown parameter: 'think'")
+            bound_options.update(kwargs)
+            return self
+
+    def fake_base_init(agent, name, tools):
+        agent._name = name
+        agent._tools = tools
+        agent._model = object()
+
+    monkeypatch.setenv("SAFETY_LLM_MODEL", "azure/gpt-5.4-mini")
+    monkeypatch.setenv("LLM_URL", "https://llm.example.test/v1")
+    monkeypatch.setenv("LLM_KEY", "unit-test-key")
+    monkeypatch.setattr(BaseAgent, "__init__", fake_base_init)
+    monkeypatch.setattr("src.agents.safetyguard_agent.ChatOpenAI", AzureCompatibleFakeModel)
+
+    SafetyGuardAgent("safety", {})
+
+    assert bound_options == {"reasoning_effort": "low"}
 
 
 def test_patient_tool_username_is_injected_metadata():

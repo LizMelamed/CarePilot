@@ -39,10 +39,6 @@ class SafetyGuardAgent(BaseAgent):
             reasoning_effort = MyEnv.get("SAFETY_REASONING_EFFORT") or "low"
             self._model = self._model.bind(
                 reasoning_effort=reasoning_effort,
-                # Some OpenAI-compatible providers expose hybrid-thinking models that can leave raw
-                # <think> traces in content, breaking strict JSON parsing. Providers that do not
-                # recognize this ignore it.
-                extra_body={"think": False},
             )
 
 

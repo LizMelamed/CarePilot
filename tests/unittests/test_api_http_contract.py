@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+import pytest
+
 from fastapi.testclient import TestClient
 
 from src.api import main as api_main
@@ -56,6 +58,41 @@ def test_required_http_endpoints_match_submission_contract(monkeypatch):
     assert body["response"] == "Offline test response"
     assert set(body["steps"][0]) == {"module", "prompt", "response"}
     assert set(body["steps"][0]["prompt"]) == {"System_prompt", "User_prompt"}
+
+
+@pytest.mark.parametrize(
+    ("content", "content_type"),
+    [
+        ('{"prompt":""}', "application/json"),
+        ("{}", "application/json"),
+        ('{"prompt":', "application/json"),
+    ],
+)
+def test_execute_validation_errors_match_submission_contract(content, content_type):
+    client = TestClient(api_main.app)
+
+    response = client.post("/api/execute", content=content, headers={"content-type": content_type})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert set(body) == {"status", "error", "response", "steps"}
+    assert body["status"] == "error"
+    assert body["error"]
+    assert body["response"] is None
+    assert body["steps"] == []
+
+
+def test_users_endpoint_hides_integration_test_identities(monkeypatch):
+    class FakeDB:
+        async def list_users(self):
+            return ["patient_1", "integration_lab_deadbeef", "alex_t"]
+
+    monkeypatch.setattr(api_main, "_db_handler", lambda: FakeDB())
+
+    response = TestClient(api_main.app).get("/api/users")
+
+    assert response.status_code == 200
+    assert response.json() == {"users": ["alex_t", "patient_1"]}
 
 
 def test_root_gui_is_immediately_available_without_login():

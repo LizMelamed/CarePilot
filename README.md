@@ -44,7 +44,9 @@ pytest tests -rs
 
 Unit tests are offline. Integration tests contact the configured LLMod,
 Supabase, and Pinecone services and therefore consume remote resources; run them
-only after confirming that live-service testing is intended.
+only after confirming that live-service testing is intended. The integration
+suite requires `INTEGRATION_DB_URL` and `INTEGRATION_DB_AUTH_TOKEN` for a
+separate Supabase project and refuses to use the application `DB_URL`.
 
 ## Required Submission API
 

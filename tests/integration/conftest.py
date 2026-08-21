@@ -7,10 +7,43 @@ a configured remote stack. Run explicitly with: python -m pytest tests/integrati
 
 from __future__ import annotations
 
+import os
+
 import pytest
 import requests
 
 from src.utils.my_env import MyEnv
+
+
+@pytest.fixture(scope="session", autouse=True)
+def isolated_integration_database():
+    """Require a dedicated Supabase project before any live integration test can run."""
+    env = MyEnv()
+    integration_url = MyEnv.get("INTEGRATION_DB_URL")
+    integration_token = MyEnv.get("INTEGRATION_DB_AUTH_TOKEN")
+    if not integration_url or not integration_token:
+        pytest.skip(
+            "INTEGRATION_DB_URL and INTEGRATION_DB_AUTH_TOKEN are required; "
+            "refusing to run integration tests against the application database."
+        )
+    if integration_url.rstrip("/") == (env.get_db_url() or "").rstrip("/"):
+        pytest.skip("INTEGRATION_DB_URL must use a different Supabase project than DB_URL.")
+
+    previous_url = os.environ.get("DB_URL")
+    previous_token = os.environ.get("DB_AUTH_TOKEN")
+    os.environ["DB_URL"] = integration_url
+    os.environ["DB_AUTH_TOKEN"] = integration_token
+    try:
+        yield
+    finally:
+        if previous_url is None:
+            os.environ.pop("DB_URL", None)
+        else:
+            os.environ["DB_URL"] = previous_url
+        if previous_token is None:
+            os.environ.pop("DB_AUTH_TOKEN", None)
+        else:
+            os.environ["DB_AUTH_TOKEN"] = previous_token
 
 
 @pytest.fixture(scope="session")

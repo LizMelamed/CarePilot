@@ -7,8 +7,10 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, File, Header, HTTPException, UploadFile
-from fastapi.responses import Response
+from fastapi import FastAPI, File, Header, HTTPException, Request, UploadFile
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -46,6 +48,21 @@ class UploadResponse(BaseModel):
     error: str | None = None
 
 
+@app.exception_handler(RequestValidationError)
+async def request_validation_error(request: Request, exc: RequestValidationError):
+    """Keep validation failures for the required execute endpoint inside its API contract."""
+    if request.url.path == "/api/execute":
+        messages = [error.get("msg", "Invalid request") for error in exc.errors()]
+        payload = ExecuteResponse(
+            status="error",
+            error="; ".join(messages) or "Invalid request",
+            response=None,
+            steps=[],
+        )
+        return JSONResponse(status_code=200, content=payload.model_dump())
+    return await request_validation_exception_handler(request, exc)
+
+
 class PatientProfile(BaseModel):
     username: str
     date_of_birth: str | None = None
@@ -69,7 +86,8 @@ def _resolve_username(x_carepilot_username: str | None) -> str:
 @app.get("/api/users")
 async def list_users() -> dict[str, Any]:
     users = await _db_handler().list_users()
-    return {"users": sorted(users)}
+    visible_users = [username for username in users if not username.startswith("integration_")]
+    return {"users": sorted(visible_users)}
 
 
 @app.get("/api/patients/me", response_model=PatientProfile)

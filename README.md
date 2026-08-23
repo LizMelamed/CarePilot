@@ -16,7 +16,7 @@ The public submission opens directly with the synthetic `patient_1` profile. No 
 - Summarize source text without adding a diagnosis or unsupported medical advice.
 - Draft factual messages for care coordination, referrals, insurance, and record requests.
 - Show the agent's planner, executor, replanner, and safety-review trace.
-- Upload, list, and remove supported patient documents through the Web UI.
+- Upload, list, view as readable text, and remove supported patient documents through the Web UI.
 - Fail safely when an answer is unsupported, unsafe, or the AI service is unavailable.
 
 ## Architecture
@@ -124,6 +124,7 @@ The Web UI also uses:
 - `GET /api/users`
 - `GET /api/patients/me`
 - `GET /api/documents`
+- `GET /api/documents/{file_name}`
 - `POST /api/documents`
 - `DELETE /api/documents/{file_name}`
 

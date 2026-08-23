@@ -67,6 +67,53 @@ def test_planner_prompt_does_not_include_unused_home_city():
     assert payload["username"] == "patient_1"
 
 
+def test_planner_answers_previous_question_from_history_without_model_call():
+    class ModelMustNotRun:
+        async def ainvoke(self, messages):
+            raise AssertionError(
+                "conversation-meta question should not call the planner model"
+            )
+
+    agent = PlannerAgent.__new__(PlannerAgent)
+    agent._model = ModelMustNotRun()
+    ctx = PlannerContext(
+        prompt="What was my previous question? Answer briefly.",
+        username="patient_1",
+        history=[
+            {"prompt": "First question", "final_response": "First answer"},
+            {
+                "prompt": "Most recent question",
+                "final_response": "Most recent answer",
+            },
+        ],
+    )
+
+    result = asyncio.run(agent.act(ctx))
+
+    assert result.direct_answer == (
+        "Your previous question was: “Most recent question”"
+    )
+    assert result.tasks == []
+    assert result.step.module == "PlanningLLM"
+
+
+def test_planner_answers_previous_response_from_history_without_patient_db():
+    ctx = PlannerContext(
+        prompt="What was your last response?",
+        username="patient_1",
+        history=[
+            {
+                "prompt": "Recent question",
+                "final_response": "Recent answer",
+            }
+        ],
+    )
+
+    assert PlannerAgent._conversation_answer(ctx) == (
+        "My previous response was: “Recent answer”"
+    )
+
+
 def test_replanner_iteration_cap_returns_done():
     ctx = ReplannerContext(
         original_prompt="help me prepare",

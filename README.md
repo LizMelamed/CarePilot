@@ -2,10 +2,6 @@
 
 CarePilot is a patient-facing AI agent that brings together medical records, care logistics, and source-attributed clinical information. It helps patients understand documents in plain language, prepare for appointments, check referral or insurance status, and draft messages to their care team.
 
-> **Live Web UI:** [https://care-pilot-dun.vercel.app](https://care-pilot-dun.vercel.app)
->
-> **Interactive API documentation:** [https://care-pilot-dun.vercel.app/docs](https://care-pilot-dun.vercel.app/docs)
-
 The public submission opens directly with the synthetic `patient_1` profile. No login or real patient information is required.
 
 ## What CarePilot Can Do
@@ -71,11 +67,6 @@ The orchestration tiers avoid unnecessary model calls:
 
 ## Required Submission API
 
-Production base URL:
-
-```text
-https://care-pilot-dun.vercel.app
-```
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
@@ -84,14 +75,7 @@ https://care-pilot-dun.vercel.app
 | `GET` | `/api/model_architecture` | Architecture diagram as a PNG. |
 | `POST` | `/api/execute` | Execute the CarePilot agent. |
 
-Example execution request:
 
-```bash
-curl -X POST "https://care-pilot-dun.vercel.app/api/execute" \
-  -H "Content-Type: application/json" \
-  -H "X-CarePilot-Username: patient_1" \
-  -d '{"prompt":"Help me prepare for my next checkup"}'
-```
 
 The username header is optional. If omitted, the application uses `CAREPILOT_DEFAULT_USERNAME`, which is `patient_1` in the public demo.
 

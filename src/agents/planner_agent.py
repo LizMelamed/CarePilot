@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -21,6 +22,10 @@ not ask the patient to clarify what kind of appointment they mean.
 Only treat a request as unrelated to healthcare if it is clearly so (e.g. politics, celebrities, entertainment,
 general trivia, coding help). For those, or for greetings/small talk/general questions you can already answer
 without looking anything up, answer directly -- do not plan tasks for them.
+
+recent_history contains prior conversation turns in chronological order (oldest first, newest last). Questions
+about what the patient previously asked or what CarePilot previously answered must be answered directly from
+recent_history. Conversation history is not a patient record: never use patient_db for these questions.
 
 Decide which of these two response shapes applies:
 1. DIRECT ANSWER: The request needs no patient data lookup and no tool at all -- greetings, small talk, or an
@@ -95,8 +100,12 @@ class PlannerAgent(BaseAgent):
             return None
 
         user_prompt = self._user_prompt(ctx)
-        output = await self._invoke_json(PLANNER_SYSTEM_PROMPT, user_prompt)
-        direct_answer, tasks = self._parse_output(output, ctx.prompt)
+        direct_answer = self._conversation_answer(ctx)
+        if direct_answer is None:
+            output = await self._invoke_json(PLANNER_SYSTEM_PROMPT, user_prompt)
+            direct_answer, tasks = self._parse_output(output, ctx.prompt)
+        else:
+            tasks = []
         step = AgentStep(
             module=PLANNING_MODULE,
             system_prompt=PLANNER_SYSTEM_PROMPT.strip(),
@@ -109,6 +118,27 @@ class PlannerAgent(BaseAgent):
             step_order=1,
         )
         return PlannerResult(tasks=tasks, step=step, direct_answer=direct_answer)
+
+    @staticmethod
+    def _conversation_answer(ctx: PlannerContext) -> str | None:
+        """Answer simple history-meta questions deterministically and without a needless tool call."""
+        if not ctx.history:
+            return None
+
+        normalized = re.sub(r"[^a-z0-9\s]", " ", ctx.prompt.lower())
+        refers_to_prior_turn = re.search(r"\b(previous|last|recent|earlier)\b", normalized)
+        asks_about_question = re.search(r"\b(question|prompt|ask|asked|said)\b", normalized)
+        asks_about_answer = re.search(r"\b(answer|response|reply|responded)\b", normalized)
+        if not refers_to_prior_turn or not (asks_about_question or asks_about_answer):
+            return None
+
+        latest = ctx.history[-1]
+        if asks_about_answer and not asks_about_question:
+            prior_response = str(latest.get("final_response") or "").strip()
+            return f'My previous response was: “{prior_response}”' if prior_response else None
+
+        prior_prompt = str(latest.get("prompt") or "").strip()
+        return f'Your previous question was: “{prior_prompt}”' if prior_prompt else None
 
     async def _invoke_json(self, system_prompt: str, user_prompt: str) -> str:
         response = await self._model.ainvoke([

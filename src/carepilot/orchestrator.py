@@ -272,9 +272,11 @@ class CarePilotOrchestrator:
         turn's history. Passing the raw rows through would re-embed that on every turn, growing
         the payload exponentially (observed to reach tens of megabytes after a handful of turns).
         """
+        # The DB returns newest-first. Planner contexts are chronological so "previous"
+        # unambiguously refers to the final item and ordinary follow-ups read naturally.
         return [
             {"prompt": entry.get("prompt"), "final_response": entry.get("final_response")}
-            for entry in history
+            for entry in reversed(history)
         ]
 
     _EMPTY_RESULT_MARKERS = {"[]", "{}", "null", "none"}

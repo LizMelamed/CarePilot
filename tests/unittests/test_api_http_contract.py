@@ -95,6 +95,70 @@ def test_users_endpoint_hides_integration_test_identities(monkeypatch):
     assert response.json() == {"users": ["alex_t", "patient_1"]}
 
 
+def test_conversation_history_is_patient_scoped_and_returns_public_trace(monkeypatch):
+    class FakeDB:
+        calls = []
+
+        async def get_execution_history(self, username, limit=10):
+            self.calls.append((username, limit))
+            return [
+                {
+                    "id": "exec_1",
+                    "prompt": "What did my last test show?",
+                    "final_response": "Your recorded result was stable.",
+                    "status": "success",
+                    "error": None,
+                    "created_at": "2026-08-23T09:30:00+00:00",
+                    "steps": [
+                        {
+                            "module": "PlanningLLM",
+                            "system_prompt": "plan safely",
+                            "user_prompt": "What did my last test show?",
+                            "response": "{}",
+                            "step_order": 1,
+                        }
+                    ],
+                }
+            ]
+
+    db = FakeDB()
+    monkeypatch.setattr(api_main, "_db_handler", lambda: db)
+
+    response = TestClient(api_main.app).get(
+        "/api/conversations?limit=7",
+        headers={"X-CarePilot-Username": "patient_7"},
+    )
+
+    assert response.status_code == 200
+    assert db.calls == [("patient_7", 7)]
+    body = response.json()
+    assert set(body) == {"conversations"}
+    assert body["conversations"][0] == {
+        "id": "exec_1",
+        "prompt": "What did my last test show?",
+        "response": "Your recorded result was stable.",
+        "status": "success",
+        "error": None,
+        "created_at": "2026-08-23T09:30:00+00:00",
+        "steps": [
+            {
+                "module": "PlanningLLM",
+                "prompt": {
+                    "System_prompt": "plan safely",
+                    "User_prompt": "What did my last test show?",
+                },
+                "response": "{}",
+            }
+        ],
+    }
+
+
+def test_conversation_history_limit_is_bounded():
+    response = TestClient(api_main.app).get("/api/conversations?limit=51")
+
+    assert response.status_code == 422
+
+
 def test_document_content_endpoint_is_patient_scoped_and_decodes_file_name(monkeypatch):
     class FakeDB:
         calls = []
@@ -141,5 +205,8 @@ def test_root_gui_is_immediately_available_without_login():
 
     assert response.status_code == 200
     assert "Run Agent" in response.text
+    assert "Conversation history" in response.text
+    assert "Ask a follow-up" in response.text
+    assert "/api/conversations?limit=20" in response.text
     assert "type=\"password\"" not in response.text
     assert "Sign in" not in response.text

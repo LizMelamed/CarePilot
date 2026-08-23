@@ -78,15 +78,10 @@ class CarePilotOrchestrator:
 
         try:
             history = await self._db_handler.get_execution_history(username, limit=3)
-            patient_data = await self._db_handler.get_patient_data(username)
-            home_city = None
-            if isinstance(patient_data, dict):
-                home_city = patient_data.get("home_city")
 
             planner_ctx = PlannerContext(
                 prompt=prompt,
                 username=username,
-                home_city=home_city,
                 current_datetime=datetime.now(ZoneInfo(TIMEZONE)).isoformat(),
                 history=self._lean_history(history),
             )

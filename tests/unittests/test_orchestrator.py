@@ -105,6 +105,18 @@ def test_orchestrator_tier0_direct_answer_skips_executor_and_replanner():
     assert db.saved["final_response"] == "safe final"
 
 
+def test_lean_history_is_chronological_and_excludes_trace_payloads():
+    raw_history = [
+        {"prompt": "newest", "final_response": "new answer", "steps": [{"large": "trace"}]},
+        {"prompt": "oldest", "final_response": "old answer", "steps": [{"large": "trace"}]},
+    ]
+
+    assert CarePilotOrchestrator._lean_history(raw_history) == [
+        {"prompt": "oldest", "final_response": "old answer"},
+        {"prompt": "newest", "final_response": "new answer"},
+    ]
+
+
 def test_orchestrator_tier1_single_task_skips_replanner():
     db = FakeDB()
     result = asyncio.run(_orchestrator_with_fakes(db).execute("patient_1", "prepare"))

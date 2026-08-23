@@ -397,6 +397,24 @@
     color: var(--muted);
   }
 
+  .conversation-card { margin-top: 24px; }
+  .conversation-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .conversation-list { display: grid; gap: 12px; margin-top: 18px; }
+  .conversation-turn {
+    width: 100%; text-align: left; padding: 15px 17px; cursor: pointer;
+    color: var(--text); background: var(--bg-inset); border: 1px solid transparent;
+    border-radius: 14px; font-family: inherit;
+  }
+  .conversation-turn:hover { background: var(--panel); border-color: var(--border-strong); }
+  .conversation-turn-meta { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+  .conversation-turn-time { color: var(--muted-2); font-size: 0.76rem; }
+  .conversation-turn-prompt { display: block; font-weight: 650; line-height: 1.4; }
+  .conversation-turn-response {
+    display: -webkit-box; margin-top: 6px; color: var(--muted); font-size: 0.86rem; line-height: 1.45;
+    overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  }
+  .conversation-empty { color: var(--muted); margin: 0; }
+
   section.result { margin-top: 26px; display: none; }
   section.result.visible { display: block; }
 
@@ -426,6 +444,8 @@
   }
   .retry-button { display: none; margin-top: 10px; }
   .retry-button.visible { display: inline-flex; }
+  .follow-up-button { display: none; margin-top: 14px; }
+  .follow-up-button.visible { display: inline-flex; }
 
   details.step {
     border: 1px solid var(--border);
@@ -1009,6 +1029,18 @@
           <span id="status-text"></span>
         </div>
 
+        <div class="card conversation-card">
+          <div class="conversation-header">
+            <div>
+              <h3>Conversation history</h3>
+              <p class="card-sub" style="margin-bottom:0;">Open a previous turn, then ask a follow-up. CarePilot uses recent turns as context.</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="refresh-history-btn" type="button">Refresh</button>
+          </div>
+          <div id="conversation-status" class="card-sub" aria-live="polite"></div>
+          <div id="conversation-list" class="conversation-list"></div>
+        </div>
+
         <section class="result" id="result-section">
           <div class="card">
             <h3>Response</h3>
@@ -1016,6 +1048,7 @@
             <div class="response-text" id="response-text"></div>
             <div class="error-text" id="error-text"></div>
             <button class="btn btn-secondary retry-button" id="retry-button" type="button">Try again</button>
+            <button class="btn btn-secondary follow-up-button" id="follow-up-button" type="button">Ask a follow-up</button>
           </div>
           <div class="card">
             <h3>Reasoning steps</h3>
@@ -1179,6 +1212,7 @@ function setActiveView(name) {
   document.getElementById('topbar-sub').textContent = views[name].sub;
   if (name === 'documents') loadDocuments();
   if (name === 'account') loadAccount();
+  if (name === 'ask') loadConversationHistory();
   if (location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
   window.scrollTo(0, 0);
 }
@@ -1206,7 +1240,10 @@ const resultSection = document.getElementById('result-section');
 const responseText = document.getElementById('response-text');
 const errorText = document.getElementById('error-text');
 const retryButton = document.getElementById('retry-button');
+const followUpButton = document.getElementById('follow-up-button');
 const stepsContainer = document.getElementById('steps-container');
+const conversationList = document.getElementById('conversation-list');
+const conversationStatus = document.getElementById('conversation-status');
 const SERVICE_UNAVAILABLE_MARKER = "CarePilot's AI service is temporarily unavailable.";
 
 promptInput.addEventListener('input', () => {
@@ -1252,6 +1289,68 @@ function renderSteps(steps) {
   });
 }
 
+function formatConversationTime(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function openConversationTurn(turn) {
+  responseText.textContent = turn.response || '';
+  errorText.textContent = turn.error || '';
+  errorText.classList.remove('service-unavailable');
+  retryButton.classList.remove('visible');
+  followUpButton.classList.toggle('visible', Boolean(turn.response));
+  renderSteps(turn.steps);
+  resultSection.classList.add('visible');
+  statusText.textContent = 'Showing a previous conversation. Select “Ask a follow-up” to continue.';
+  resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function prepareFollowUp() {
+  promptInput.value = '';
+  promptInput.placeholder = 'Ask a follow-up about the answer shown below…';
+  promptInput.dispatchEvent(new Event('input'));
+  statusText.textContent = 'Recent conversation turns will be included as context.';
+  promptInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => promptInput.focus(), 350);
+}
+
+async function loadConversationHistory() {
+  conversationStatus.textContent = 'Loading recent conversations…';
+  try {
+    const res = await fetch('/api/conversations?limit=20', { headers: authHeaders() });
+    if (!res.ok) throw new Error(`Server returned ${res.status}`);
+    const data = await res.json();
+    const turns = Array.isArray(data.conversations) ? data.conversations : [];
+    conversationList.innerHTML = '';
+    conversationStatus.textContent = '';
+    if (turns.length === 0) {
+      conversationList.innerHTML = '<p class="conversation-empty">No conversations yet. Ask your first question above.</p>';
+      return;
+    }
+    turns.forEach(turn => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'conversation-turn';
+      const stateLabel = turn.status === 'success' ? 'Answered' : 'Error';
+      button.innerHTML = `
+        <span class="conversation-turn-meta">
+          <span class="badge ${turn.status === 'success' ? 'badge-success' : 'badge-error'}">${stateLabel}</span>
+          <span class="conversation-turn-time">${escapeHtml(formatConversationTime(turn.created_at))}</span>
+        </span>
+        <span class="conversation-turn-prompt">${escapeHtml(turn.prompt)}</span>
+        <span class="conversation-turn-response">${escapeHtml(turn.response || turn.error || 'No response recorded.')}</span>`;
+      button.addEventListener('click', () => openConversationTurn(turn));
+      conversationList.appendChild(button);
+    });
+  } catch (err) {
+    conversationList.innerHTML = '';
+    conversationStatus.textContent = `Could not load conversation history: ${err.message}`;
+  }
+}
+
 function setRunning(isRunning) {
   runButton.disabled = isRunning;
   runButtonLabel.innerHTML = '';
@@ -1278,6 +1377,7 @@ async function runAgent() {
   errorText.textContent = '';
   errorText.classList.remove('service-unavailable');
   retryButton.classList.remove('visible');
+  followUpButton.classList.remove('visible');
 
   try {
     const res = await fetch('/api/execute', {
@@ -1298,9 +1398,11 @@ async function runAgent() {
     errorText.textContent = errorMessage;
     errorText.classList.toggle('service-unavailable', serviceUnavailable);
     retryButton.classList.toggle('visible', serviceUnavailable);
+    followUpButton.classList.toggle('visible', data.status !== 'error' && Boolean(data.response));
     renderSteps(data.steps);
     resultSection.classList.add('visible');
     statusText.textContent = data.status === 'error' ? 'Completed with an error.' : 'Done.';
+    await loadConversationHistory();
   } catch (err) {
     errorText.textContent = 'Request failed: ' + err.message;
     errorText.classList.remove('service-unavailable');
@@ -1314,6 +1416,8 @@ async function runAgent() {
 
 runButton.addEventListener('click', runAgent);
 retryButton.addEventListener('click', runAgent);
+followUpButton.addEventListener('click', prepareFollowUp);
+document.getElementById('refresh-history-btn').addEventListener('click', loadConversationHistory);
 promptInput.addEventListener('keydown', (event) => {
   if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
     runAgent();

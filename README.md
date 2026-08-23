@@ -258,8 +258,4 @@ CarePilot/
 
 ## Team
 
-- **Batch / presentation order:** `1_9`
-- **Team:** `Lotem_Ron_Liz`
-- **Members:** Lotem Nadir, Ron Preminger, and Liz Melamed
-
 The canonical submission metadata is served by [`/api/team_info`](https://care-pilot-dun.vercel.app/api/team_info).

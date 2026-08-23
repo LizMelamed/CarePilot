@@ -95,6 +95,46 @@ def test_users_endpoint_hides_integration_test_identities(monkeypatch):
     assert response.json() == {"users": ["alex_t", "patient_1"]}
 
 
+def test_document_content_endpoint_is_patient_scoped_and_decodes_file_name(monkeypatch):
+    class FakeDB:
+        calls = []
+
+        async def get_file(self, username, file_name):
+            self.calls.append((username, file_name))
+            return "Lab result: hemoglobin 11.0 g/dL"
+
+    db = FakeDB()
+    monkeypatch.setattr(api_main, "_db_handler", lambda: db)
+
+    response = TestClient(api_main.app).get(
+        "/api/documents/lab%20results.txt",
+        headers={"X-CarePilot-Username": "patient_7"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "file_name": "lab results.txt",
+        "content": "Lab result: hemoglobin 11.0 g/dL",
+    }
+    assert db.calls == [("patient_7", "lab results.txt")]
+
+
+def test_document_content_endpoint_returns_404_when_file_is_not_owned(monkeypatch):
+    class FakeDB:
+        async def get_file(self, username, file_name):
+            return None
+
+    monkeypatch.setattr(api_main, "_db_handler", lambda: FakeDB())
+
+    response = TestClient(api_main.app).get(
+        "/api/documents/private.txt",
+        headers={"X-CarePilot-Username": "other_patient"},
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "File 'private.txt' not found."}
+
+
 def test_root_gui_is_immediately_available_without_login():
     client = TestClient(api_main.app)
     response = client.get("/")

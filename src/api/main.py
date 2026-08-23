@@ -41,6 +41,11 @@ class DocumentMeta(BaseModel):
     size_chars: int | None = None
 
 
+class DocumentContent(BaseModel):
+    file_name: str
+    content: str
+
+
 class UploadResponse(BaseModel):
     status: str
     file_name: str
@@ -142,6 +147,18 @@ async def upload_document(
         return UploadResponse(status="uploaded", file_name=file.filename, error=f"Indexing failed: {e}")
 
     return UploadResponse(status="uploaded", file_name=file.filename)
+
+
+@app.get("/api/documents/{file_name}", response_model=DocumentContent)
+async def get_document(
+        file_name: str,
+        x_carepilot_username: str | None = Header(default=None),
+) -> DocumentContent:
+    username = _resolve_username(x_carepilot_username)
+    content = await _db_handler().get_file(username, file_name)
+    if content is None:
+        raise HTTPException(status_code=404, detail=f"File '{file_name}' not found.")
+    return DocumentContent(file_name=file_name, content=content)
 
 
 @app.delete("/api/documents/{file_name}")

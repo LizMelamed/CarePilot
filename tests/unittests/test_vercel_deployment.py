@@ -64,6 +64,15 @@ def test_gui_distinguishes_llm_unavailable_and_offers_retry():
     assert "retryButton.addEventListener('click', runAgent)" in html
 
 
+def test_gui_includes_patient_scoped_document_viewer():
+    html = (PROJECT_ROOT / "static" / "index.html").read_text(encoding="utf-8")
+
+    assert 'id="document-modal"' in html
+    assert "view-doc-btn" in html
+    assert "encodeURIComponent(fileName)" in html
+    assert "documentModalContent.textContent = data.content" in html
+
+
 def test_live_root_gui_is_immediately_available_without_login():
     response = _get_live("/")
 

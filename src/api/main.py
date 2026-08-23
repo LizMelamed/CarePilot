@@ -7,7 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, File, Header, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, Header, HTTPException, Query, Request, UploadFile
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
@@ -50,6 +50,20 @@ class UploadResponse(BaseModel):
     status: str
     file_name: str
     error: str | None = None
+
+
+class ConversationTurn(BaseModel):
+    id: str | None = None
+    prompt: str
+    response: str | None = None
+    status: str
+    error: str | None = None
+    created_at: str | None = None
+    steps: list[dict[str, Any]]
+
+
+class ConversationHistoryResponse(BaseModel):
+    conversations: list[ConversationTurn]
 
 
 @app.exception_handler(RequestValidationError)
@@ -102,6 +116,30 @@ async def get_me(x_carepilot_username: str | None = Header(default=None)) -> Pat
         raise HTTPException(status_code=404, detail=f"Unknown patient '{username}'.")
     date_of_birth, gender, sex = data
     return PatientProfile(username=username, date_of_birth=date_of_birth, gender=gender, sex=sex)
+
+
+@app.get("/api/conversations", response_model=ConversationHistoryResponse)
+async def conversation_history(
+        limit: int = Query(default=20, ge=1, le=50),
+        x_carepilot_username: str | None = Header(default=None),
+) -> ConversationHistoryResponse:
+    """Return recent patient-scoped turns without invoking the agent or an LLM."""
+    username = _resolve_username(x_carepilot_username)
+    rows = await _db_handler().get_execution_history(username, limit=limit)
+    return ConversationHistoryResponse(
+        conversations=[
+            ConversationTurn(
+                id=str(row["id"]) if row.get("id") is not None else None,
+                prompt=row.get("prompt") or "",
+                response=row.get("final_response"),
+                status=row.get("status") or "error",
+                error=row.get("error"),
+                created_at=row.get("created_at"),
+                steps=[_public_step(step) for step in row.get("steps") or []],
+            )
+            for row in rows
+        ]
+    )
 
 
 @app.get("/api/documents")
@@ -252,6 +290,21 @@ def _students_from_env() -> list[dict[str, str]]:
         except json.JSONDecodeError:
             pass
     return []
+
+
+def _public_step(step: dict[str, Any]) -> dict[str, Any]:
+    """Translate a persisted DB step back to the public trace shape used by the GUI."""
+    prompt = step.get("prompt")
+    if not isinstance(prompt, dict):
+        prompt = {
+            "System_prompt": step.get("system_prompt"),
+            "User_prompt": step.get("user_prompt"),
+        }
+    return {
+        "module": step.get("module"),
+        "prompt": prompt,
+        "response": step.get("response"),
+    }
 
 
 def _example_prompt_response() -> dict[str, Any]:

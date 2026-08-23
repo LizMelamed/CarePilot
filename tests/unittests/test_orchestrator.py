@@ -1,10 +1,19 @@
 import asyncio
 
-from src.agents.executor_agent import ExecutorResult
-from src.agents.planner_agent import PlannerResult
-from src.agents.replanner_agent import ReplannerResult
+import httpx
+import pytest
+from openai import APIConnectionError, APITimeoutError, InternalServerError, RateLimitError
+
+from src.agents.executor_agent import EXECUTOR_MODULE, ExecutorResult
+from src.agents.planner_agent import PLANNING_MODULE, PlannerResult
+from src.agents.replanner_agent import REPLANNER_MODULE, ReplannerResult
+from src.agents.safetyguard_agent import SAFETY_MODULE
 from src.agents.workflow_types import AgentStep, PlannedTask, TaskResult
-from src.carepilot.orchestrator import CarePilotOrchestrator
+from src.carepilot.orchestrator import (
+    GENERIC_FALLBACK_MESSAGE,
+    LLM_UNAVAILABLE_MESSAGE,
+    CarePilotOrchestrator,
+)
 
 
 class FakeDB:
@@ -155,4 +164,75 @@ def test_orchestrator_error_path_still_persists():
 
     assert result.status == "error"
     assert result.error == "Planner failed."
+    assert result.response == GENERIC_FALLBACK_MESSAGE
+    assert "[LLM_UNAVAILABLE]" not in orchestrator._logger.message
     assert db.saved["status"] == "error"
+
+
+def _openai_unavailable_errors():
+    request = httpx.Request("POST", "https://llm.example.test/v1/chat/completions")
+    return [
+        APIConnectionError(request=request),
+        APITimeoutError(request=request),
+        RateLimitError(
+            "quota exhausted",
+            response=httpx.Response(429, request=request),
+            body={"error": {"code": "insufficient_quota"}},
+        ),
+        InternalServerError(
+            "upstream unavailable",
+            response=httpx.Response(503, request=request),
+            body={"error": {"code": "service_unavailable"}},
+        ),
+    ]
+
+
+@pytest.mark.parametrize("llm_error", _openai_unavailable_errors())
+def test_orchestrator_classifies_llm_unavailable_failures(llm_error):
+    class UnavailablePlanner:
+        async def act(self, ctx):
+            raise llm_error
+
+    db = FakeDB()
+    orchestrator = _orchestrator_with_fakes(db, planner=UnavailablePlanner())
+
+    result = asyncio.run(orchestrator.execute("patient_1", "prepare"))
+
+    assert result.status == "error"
+    assert result.error == LLM_UNAVAILABLE_MESSAGE
+    assert result.response == LLM_UNAVAILABLE_MESSAGE
+    assert result.steps == []
+    assert db.saved["error"] == LLM_UNAVAILABLE_MESSAGE
+    assert "[LLM_UNAVAILABLE]" in orchestrator._logger.message
+    assert f"module={PLANNING_MODULE}" in orchestrator._logger.message
+    assert f"exception={type(llm_error).__name__}" in orchestrator._logger.message
+
+
+@pytest.mark.parametrize(
+    ("failing_stage", "expected_module"),
+    [
+        ("executor", EXECUTOR_MODULE),
+        ("replanner", REPLANNER_MODULE),
+        ("safety", SAFETY_MODULE),
+    ],
+)
+def test_orchestrator_logs_the_llm_stage_that_was_unavailable(failing_stage, expected_module):
+    class UnavailableAgent:
+        async def act(self, ctx):
+            request = httpx.Request("POST", "https://llm.example.test/v1/chat/completions")
+            raise APIConnectionError(request=request)
+
+    if failing_stage == "executor":
+        orchestrator = _orchestrator_with_fakes(executor=UnavailableAgent())
+    elif failing_stage == "replanner":
+        orchestrator = _orchestrator_with_fakes(
+            executor=FakeExecutor(succeed=False), replanner=UnavailableAgent()
+        )
+    else:
+        orchestrator = _orchestrator_with_fakes(planner=FakePlanner(direct_answer="hello"))
+        orchestrator._safety_guard = UnavailableAgent()
+
+    result = asyncio.run(orchestrator.execute("patient_1", "prepare"))
+
+    assert result.error == LLM_UNAVAILABLE_MESSAGE
+    assert f"module={expected_module}" in orchestrator._logger.message

@@ -142,6 +142,31 @@ def test_execute_error_matches_required_contract(monkeypatch):
     }
 
 
+def test_execute_service_unavailable_keeps_required_contract(monkeypatch):
+    service_message = "CarePilot's AI service is temporarily unavailable. Please try again in a minute."
+
+    class UnavailableOrchestrator:
+        async def execute(self, username: str, prompt: str):
+            return FakeOrchestratorResult(
+                status="error",
+                error=service_message,
+                response=service_message,
+                steps=[],
+                execution_id=None,
+            )
+
+    monkeypatch.setattr(api_main, "_orchestrator", lambda: UnavailableOrchestrator())
+
+    body = asyncio.run(api_main.execute(api_main.ExecuteRequest(prompt="hello")))
+
+    assert body.model_dump() == {
+        "status": "error",
+        "error": service_message,
+        "response": None,
+        "steps": [],
+    }
+
+
 def test_agent_step_shape_matches_assignment():
     body = asyncio.run(api_main.agent_info())
 

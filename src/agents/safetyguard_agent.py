@@ -8,6 +8,8 @@ from langchain_openai import ChatOpenAI
 from src.agents.agent import BaseAgent, AgentContext
 from src.utils.my_env import MyEnv
 
+SAFETY_MODULE = "SafetyGuardLLM"
+
 @dataclass
 class SafetyGuardContext(AgentContext):
     query: str

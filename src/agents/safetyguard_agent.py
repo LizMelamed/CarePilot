@@ -87,7 +87,7 @@ class SafetyGuardAgent(BaseAgent):
             self._logger.error("Failed to retrieve output from SafetyGuard agent.")
             return fallback_result
 
-        result = self._try_parse(output_resp.content)
+        result = self._try_parse(output_resp.content, my_ctx.draft_response)
         if result is not None:
             return result
 
@@ -96,10 +96,10 @@ class SafetyGuardAgent(BaseAgent):
         self._logger.error("SafetyGuard agent did not return valid JSON.")
         return fallback_result
 
-    def _try_parse(self, output: str) -> dict | None:
+    def _try_parse(self, output: str, draft_response: str) -> dict | None:
         cleaned = self._strip_markdown_fence(self._strip_reasoning_trace(output))
         try:
-            return self._normalize_result(json.loads(cleaned))
+            return self._normalize_result(json.loads(cleaned), draft_response)
         except json.JSONDecodeError:
             pass
 
@@ -109,7 +109,7 @@ class SafetyGuardAgent(BaseAgent):
         extracted = self._extract_json_object(cleaned)
         if extracted is not None:
             try:
-                return self._normalize_result(json.loads(extracted))
+                return self._normalize_result(json.loads(extracted), draft_response)
             except json.JSONDecodeError:
                 pass
 
@@ -135,8 +135,8 @@ class SafetyGuardAgent(BaseAgent):
                 return "\n".join(lines[1:-1]).removeprefix("json").strip()
         return output
 
-    _DOC_CHAR_CAP = 600
-    _DOCS_TOTAL_CHAR_CAP = 2400
+    _DOC_CHAR_CAP = 4000
+    _DOCS_TOTAL_CHAR_CAP = 20000
 
     @classmethod
     def _condensed_documents(cls, documents: list[str]) -> list[str]:
@@ -144,8 +144,9 @@ class SafetyGuardAgent(BaseAgent):
         the safety prompt. Small local models have limited context; stuffing in several full
         multi-thousand-character chunks (as query_clinical_rag/get_patient_documents can produce)
         can overflow that budget, leaving no room for the model to produce a coherent -- let alone
-        valid-JSON -- reply. The safety check only needs enough of each document to verify the
-        draft's claims, not the full text."""
+        valid-JSON -- reply. The caps are generous enough to fit multi-value/multi-date records
+        (e.g. lab panels compared across visits) so the guard can actually verify the draft's
+        claims instead of failing closed on a truncated snippet."""
         condensed: list[str] = []
         total = 0
         for document in documents:
@@ -208,8 +209,37 @@ class SafetyGuardAgent(BaseAgent):
             "final_output": MEDICATION_CHANGE_MESSAGE,
         }
 
+    _DISCLAIMER_KEYWORDS = ("disclaimer", "footer")
+    _GROUNDING_VIOLATION_KEYWORDS = (
+        "fabricat", "unsupported", "ungrounded", "not grounded", "hallucin",
+        "unsafe", "dangerous", "diagnosis", "incorrect", "inaccurate",
+    )
+
+    @classmethod
+    def _is_disclaimer_only_violation(cls, violations: list) -> bool:
+        """True when the only thing wrong with the draft is a missing mandatory-footer
+        disclaimer -- that's an easy fix (append it), not grounds to discard the whole answer."""
+        texts = [str(v).lower() for v in violations]
+        if not texts:
+            return False
+        has_disclaimer_issue = any(any(k in t for k in cls._DISCLAIMER_KEYWORDS) for t in texts)
+        has_other_issue = any(any(k in t for k in cls._GROUNDING_VIOLATION_KEYWORDS) for t in texts)
+        return has_disclaimer_issue and not has_other_issue
+
     @staticmethod
-    def _normalize_result(result):
+    def _has_disclaimer(text: str) -> bool:
+        lowered = text.lower()
+        return "healthcare provider" in lowered or "physician" in lowered
+
+    @classmethod
+    def _ensure_disclaimer(cls, text: str) -> str:
+        text = text.strip()
+        if not text or cls._has_disclaimer(text):
+            return text
+        return f"{text}\n\n{DISCLAIMER_FOOTER}"
+
+    @staticmethod
+    def _normalize_result(result, draft_response: str = ""):
         if not isinstance(result, dict):
             return {
                 "is_grounded": False,
@@ -227,9 +257,18 @@ class SafetyGuardAgent(BaseAgent):
             violations = [violations]
 
         final_output = str(result.get("final_output") or "")
+
+        # A missing disclaimer is a fixable formatting gap, not a safety failure -- append the
+        # footer to the original draft instead of discarding it via BLOCK_AND_FALLBACK.
+        if action == ACTION_BLOCK and SafetyGuardAgent._is_disclaimer_only_violation(violations):
+            action = ACTION_REWRITTEN
+            final_output = SafetyGuardAgent._ensure_disclaimer(draft_response or final_output)
+
         if action == ACTION_BLOCK or not final_output.strip():
             final_output = OFF_TOPIC_MESSAGE if SafetyGuardAgent._is_scope_violation(violations) else FALLBACK_MESSAGE
             action = ACTION_BLOCK
+        elif action == ACTION_REWRITTEN:
+            final_output = SafetyGuardAgent._ensure_disclaimer(final_output)
 
         return {
             "is_grounded": bool(result.get("is_grounded")),
@@ -248,10 +287,15 @@ SAFETY_RULES = """
 2. LANGUAGE & TONE: Keep sentences short. Use clear, simple language (8th-grade reading level max). Be empathetic but firm on safety warnings.
 3. ABSOLUTE GROUNDING: Remove any advice, medical claims, or home remedies that are not directly supported by the source documents.
 4. NO DIAGNOSIS: Never say "You have X" or "This is caused by Y." Frame as "These symptoms can sometimes be related to..." and encourage consulting their healthcare provider.
-5. MANDATORY FOOTER: Always append a disclaimer directing the user to contact their physician for personal medical decisions.
+5. MANDATORY FOOTER: Always append a disclaimer directing the user to contact their physician for personal medical decisions. A missing footer on an otherwise safe, grounded draft is a REWRITE (append the footer) -- never a reason to BLOCK_AND_FALLBACK.
 6. SCOPE: CarePilot only helps with the patient's own healthcare: their records, appointments, medications, labs, referrals, insurance, symptoms, and care logistics. Every patient of this app is dealing with an illness, so words like "appointment", "visit", "checkup", or "meeting" almost always refer to a medical appointment unless the query clearly states otherwise (e.g. explicitly mentions work, a business call, or a personal/non-medical errand) -- treat these as in-scope by default. Only if the query is CLEARLY unrelated to the patient's healthcare (e.g. politics, celebrities, opinions on public figures, entertainment, general trivia, coding help) should you set action_taken to "REWRITE" and replace final_output with a brief, polite redirect stating CarePilot can only help with health and care-related questions. Do not block or redirect a draft_response merely because it mentions scheduling, meetings, or appointments -- that is in scope.
 7. INSUFFICIENT INFORMATION IS NOT UNSAFE: If the draft honestly says the needed information wasn't found and asks the patient a specific clarifying question (e.g. "I don't see an appointment on file -- could you tell me the date?"), that is a SAFE, desirable response -- it makes no unsupported claims. PASS it (or REWRITE only to fix tone/footer), never BLOCK_AND_FALLBACK it. Reserve BLOCK_AND_FALLBACK for content that is actually dangerous, fabricated, or gives unsupported medical claims -- not for a response that is short, uncertain, or asks for clarification.
 """
+
+DISCLAIMER_FOOTER = (
+    "This information is for general guidance only. Please contact your healthcare provider "
+    "or physician before making any personal medical decisions."
+)
 
 FALLBACK_MESSAGE = (
     "I'm sorry, but I cannot safely provide a personalized response to this query based on the available information. "

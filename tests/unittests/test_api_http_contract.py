@@ -208,5 +208,8 @@ def test_root_gui_is_immediately_available_without_login():
     assert "Conversation history" in response.text
     assert "Ask a follow-up" in response.text
     assert "/api/conversations?limit=20" in response.text
+    assert "function renderMarkdown(container, markdown)" in response.text
+    assert "renderMarkdown(responseText, data.response || '')" in response.text
+    assert "noopener noreferrer" in response.text
     assert "type=\"password\"" not in response.text
     assert "Sign in" not in response.text

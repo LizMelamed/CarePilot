@@ -24,7 +24,7 @@ class FakeDB:
         return [{"prompt": "previous"}]
 
     async def get_patient_data(self, username):
-        return {"home_city": "Haifa"}
+        raise AssertionError("The agent pipeline should not load unused patient profile data.")
 
     async def save_execution(self, **kwargs):
         self.saved = kwargs

@@ -72,7 +72,6 @@ Return only ONE raw JSON object matching exactly one of the two shapes above. Ne
 class PlannerContext(AgentContext):
     prompt: str
     username: str
-    home_city: str | None = None
     current_datetime: str | None = None
     history: list[dict] = field(default_factory=list)
 
@@ -123,7 +122,6 @@ class PlannerAgent(BaseAgent):
         return json.dumps(
             {
                 "username": ctx.username,
-                "home_city": ctx.home_city,
                 "current_datetime": ctx.current_datetime,
                 "recent_history": ctx.history[-3:],
                 "patient_prompt": ctx.prompt,

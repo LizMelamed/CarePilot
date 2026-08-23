@@ -1,4 +1,5 @@
 import asyncio
+import json
 from types import SimpleNamespace
 
 from langchain_core.tools import InjectedToolArg
@@ -6,7 +7,7 @@ from langchain_core.tools import InjectedToolArg
 from src.db.vector_store import VectorMatch
 from src.agents.agent import BaseAgent
 from src.agents.executor_agent import ExecutorAgent, ExecutorContext
-from src.agents.planner_agent import PlannerAgent
+from src.agents.planner_agent import PlannerAgent, PlannerContext
 from src.agents.replanner_agent import ReplannerAgent, ReplannerContext
 from src.agents.safetyguard_agent import (
     ACTION_BLOCK,
@@ -49,6 +50,21 @@ def test_planner_parses_tasks():
     assert direct_answer is None
     assert len(tasks) == 1
     assert tasks[0].tool_hint == "patient_db"
+
+
+def test_planner_prompt_does_not_include_unused_home_city():
+    prompt = PlannerAgent._user_prompt(
+        PlannerContext(
+            prompt="Help me prepare",
+            username="patient_1",
+            current_datetime="2026-08-23T20:00:00+03:00",
+            history=[],
+        )
+    )
+
+    payload = json.loads(prompt)
+    assert "home_city" not in payload
+    assert payload["username"] == "patient_1"
 
 
 def test_replanner_iteration_cap_returns_done():

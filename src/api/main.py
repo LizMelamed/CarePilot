@@ -17,10 +17,9 @@ from pydantic import BaseModel, Field
 from src.agents.executor_agent import EXECUTOR_MODULE
 from src.agents.planner_agent import PLANNING_MODULE, PLANNER_SYSTEM_PROMPT
 from src.agents.replanner_agent import REPLANNER_MODULE
-from src.agents.safetyguard_agent import SAFETY_PROMPT
+from src.agents.safetyguard_agent import SAFETY_MODULE, SAFETY_PROMPT
 from src.carepilot.orchestrator import CarePilotOrchestrator
 
-SAFETY_MODULE = "SafetyGuardLLM"
 EXECUTE_TIMEOUT_SECONDS = 295
 _ARCHITECTURE_PNG_PATH = Path(__file__).resolve().parents[2] / "static" / "model_architecture.png"
 app = FastAPI(title="CarePilot API")

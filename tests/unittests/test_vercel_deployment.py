@@ -54,6 +54,16 @@ def test_vercel_python_version_is_supported_and_pinned():
     assert (PROJECT_ROOT / ".python-version").read_text(encoding="utf-8").strip() == "3.12"
 
 
+def test_gui_distinguishes_llm_unavailable_and_offers_retry():
+    html = (PROJECT_ROOT / "static" / "index.html").read_text(encoding="utf-8")
+
+    assert "SERVICE_UNAVAILABLE_MARKER" in html
+    assert "service-unavailable" in html
+    assert "var(--warn-soft)" in html
+    assert 'id="retry-button"' in html
+    assert "retryButton.addEventListener('click', runAgent)" in html
+
+
 def test_live_root_gui_is_immediately_available_without_login():
     response = _get_live("/")
 

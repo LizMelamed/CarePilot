@@ -411,6 +411,21 @@
     margin-top: 12px;
   }
   .error-text:empty { display: none; }
+  .error-text.service-unavailable {
+    color: var(--warn);
+    background: var(--warn-soft);
+    border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
+  }
+  .error-text.service-unavailable::before {
+    content: "AI SERVICE TEMPORARILY UNAVAILABLE";
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+  }
+  .retry-button { display: none; margin-top: 10px; }
+  .retry-button.visible { display: inline-flex; }
 
   details.step {
     border: 1px solid var(--border);
@@ -983,6 +998,7 @@
             <p class="card-sub">Safety-checked before being shown to you.</p>
             <div class="response-text" id="response-text"></div>
             <div class="error-text" id="error-text"></div>
+            <button class="btn btn-secondary retry-button" id="retry-button" type="button">Try again</button>
           </div>
           <div class="card">
             <h3>Reasoning steps</h3>
@@ -1155,7 +1171,9 @@ const charCount = document.getElementById('char-count');
 const resultSection = document.getElementById('result-section');
 const responseText = document.getElementById('response-text');
 const errorText = document.getElementById('error-text');
+const retryButton = document.getElementById('retry-button');
 const stepsContainer = document.getElementById('steps-container');
+const SERVICE_UNAVAILABLE_MARKER = "CarePilot's AI service is temporarily unavailable.";
 
 promptInput.addEventListener('input', () => {
   const n = promptInput.value.length;
@@ -1224,6 +1242,8 @@ async function runAgent() {
   statusText.textContent = 'Planning, executing, and safety-checking your answer…';
   resultSection.classList.remove('visible');
   errorText.textContent = '';
+  errorText.classList.remove('service-unavailable');
+  retryButton.classList.remove('visible');
 
   try {
     const res = await fetch('/api/execute', {
@@ -1239,12 +1259,18 @@ async function runAgent() {
       throw new Error(`Server returned ${res.status}: ${rawBody.slice(0, 200)}`);
     }
     responseText.textContent = data.response || '';
-    errorText.textContent = data.status === 'error' ? (data.error || 'An error occurred.') : '';
+    const errorMessage = data.status === 'error' ? (data.error || 'An error occurred.') : '';
+    const serviceUnavailable = errorMessage.includes(SERVICE_UNAVAILABLE_MARKER);
+    errorText.textContent = errorMessage;
+    errorText.classList.toggle('service-unavailable', serviceUnavailable);
+    retryButton.classList.toggle('visible', serviceUnavailable);
     renderSteps(data.steps);
     resultSection.classList.add('visible');
     statusText.textContent = data.status === 'error' ? 'Completed with an error.' : 'Done.';
   } catch (err) {
     errorText.textContent = 'Request failed: ' + err.message;
+    errorText.classList.remove('service-unavailable');
+    retryButton.classList.remove('visible');
     resultSection.classList.add('visible');
     statusText.textContent = 'Request failed.';
   } finally {
@@ -1253,6 +1279,7 @@ async function runAgent() {
 }
 
 runButton.addEventListener('click', runAgent);
+retryButton.addEventListener('click', runAgent);
 promptInput.addEventListener('keydown', (event) => {
   if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
     runAgent();

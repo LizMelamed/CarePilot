@@ -6,16 +6,34 @@ from dataclasses import dataclass
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from src.agents.executor_agent import ExecutorAgent, ExecutorContext
-from src.agents.planner_agent import PlannerAgent, PlannerContext
-from src.agents.replanner_agent import ReplannerAgent, ReplannerContext
-from src.agents.safetyguard_agent import SAFETY_PROMPT, SafetyGuardAgent, SafetyGuardContext
+from openai import (
+    APIConnectionError,
+    APIStatusError,
+    APITimeoutError,
+    AuthenticationError,
+    RateLimitError,
+)
+
+from src.agents.executor_agent import EXECUTOR_MODULE, ExecutorAgent, ExecutorContext
+from src.agents.planner_agent import PLANNING_MODULE, PlannerAgent, PlannerContext
+from src.agents.replanner_agent import REPLANNER_MODULE, ReplannerAgent, ReplannerContext
+from src.agents.safetyguard_agent import (
+    SAFETY_MODULE,
+    SAFETY_PROMPT,
+    SafetyGuardAgent,
+    SafetyGuardContext,
+)
 from src.agents.workflow_types import AgentStep, PlannedTask, TaskResult
 from src.carepilot.system import System
 from src.utils.logger import Logger
 
 MAX_REPLAN_ITERATIONS = 3
 TIMEZONE = "Asia/Jerusalem"
+LLM_UNAVAILABLE_MESSAGE = "CarePilot's AI service is temporarily unavailable. Please try again in a minute."
+GENERIC_FALLBACK_MESSAGE = (
+    "I'm sorry, but I could not complete this request safely. "
+    "Please contact your care team for urgent or personal medical decisions."
+)
 
 
 @dataclass(frozen=True)
@@ -56,6 +74,7 @@ class CarePilotOrchestrator:
         final_response = ""
         status = "success"
         error = None
+        active_module: dict[str, str | None] = {"name": None}
 
         try:
             history = await self._db_handler.get_execution_history(username, limit=3)
@@ -72,6 +91,7 @@ class CarePilotOrchestrator:
                 history=self._lean_history(history),
             )
 
+            active_module["name"] = PLANNING_MODULE
             planner_result = await self._planner.act(planner_ctx)
             if planner_result is None:
                 raise RuntimeError("Planner failed.")
@@ -84,7 +104,7 @@ class CarePilotOrchestrator:
             else:
                 tasks: list[PlannedTask] = planner_result.tasks
                 step_order = await self._run_tasks(
-                    username, tasks, step_order, steps, task_results, source_documents
+                    username, tasks, step_order, steps, task_results, source_documents, active_module
                 )
 
                 if len(tasks) == 1 and self._task_succeeded(task_results[-1]):
@@ -93,13 +113,15 @@ class CarePilotOrchestrator:
                 else:
                     # Tier 2, or an escalation safety-net for a failed/empty Tier 1 attempt.
                     final_response, step_order = await self._replan_until_done(
-                        username, prompt, planner_result.tasks, task_results, source_documents, steps, step_order
+                        username, prompt, planner_result.tasks, task_results, source_documents, steps, step_order,
+                        active_module,
                     )
 
                 if not final_response:
                     final_response = self._fallback_final_context(task_results)
                 draft_response = final_response
 
+            active_module["name"] = SAFETY_MODULE
             safety_result = await self._safety_guard.act(
                 SafetyGuardContext(
                     query=prompt,
@@ -113,7 +135,7 @@ class CarePilotOrchestrator:
             final_response = str(safety_result.get("final_output") or "")
             steps.append(
                 AgentStep(
-                    module="SafetyGuardLLM",
+                    module=SAFETY_MODULE,
                     system_prompt=SAFETY_PROMPT.strip(),
                     user_prompt=json.dumps(
                         {
@@ -128,13 +150,20 @@ class CarePilotOrchestrator:
                 )
             )
         except Exception as e:
-            self._logger.exception(f"CarePilot execution failed: {e}")
             status = "error"
-            error = str(e)
-            final_response = (
-                "I'm sorry, but I could not complete this request safely. "
-                "Please contact your care team for urgent or personal medical decisions."
-            )
+            unavailable_error = self._llm_unavailable_error(e)
+            if unavailable_error is not None:
+                module = active_module["name"] or "unknown"
+                exception_name = type(unavailable_error).__name__
+                self._logger.exception(
+                    f"[LLM_UNAVAILABLE] module={module} exception={exception_name}"
+                )
+                error = LLM_UNAVAILABLE_MESSAGE
+                final_response = LLM_UNAVAILABLE_MESSAGE
+            else:
+                self._logger.exception(f"CarePilot execution failed: {e}")
+                error = str(e)
+                final_response = GENERIC_FALLBACK_MESSAGE
 
         step_dicts = [step.to_dict() for step in steps]
         execution_id = await self._safe_save_execution(
@@ -151,8 +180,10 @@ class CarePilotOrchestrator:
             steps: list[AgentStep],
             task_results: list[TaskResult],
             source_documents: list[str],
+            active_module: dict[str, str | None],
     ) -> int:
         for task in tasks:
+            active_module["name"] = EXECUTOR_MODULE
             executor_result = await self._executor.act(
                 ExecutorContext(
                     username=username,
@@ -179,11 +210,13 @@ class CarePilotOrchestrator:
             source_documents: list[str],
             steps: list[AgentStep],
             step_order: int,
+            active_module: dict[str, str | None],
     ) -> tuple[str, int]:
         final_response = ""
         iteration = 0
 
         while True:
+            active_module["name"] = REPLANNER_MODULE
             replanner_result = await self._replanner.act(
                 ReplannerContext(
                     original_prompt=prompt,
@@ -208,10 +241,30 @@ class CarePilotOrchestrator:
                 break
 
             step_order = await self._run_tasks(
-                username, replanner_result.new_tasks, step_order, steps, task_results, source_documents
+                username, replanner_result.new_tasks, step_order, steps, task_results, source_documents,
+                active_module,
             )
 
         return final_response, step_order
+
+    @staticmethod
+    def _llm_unavailable_error(error: BaseException) -> BaseException | None:
+        """Find a typed OpenAI availability failure without relying on message text."""
+        current: BaseException | None = error
+        seen: set[int] = set()
+        while current is not None and id(current) not in seen:
+            seen.add(id(current))
+            if isinstance(
+                current,
+                (APIConnectionError, APITimeoutError, RateLimitError, AuthenticationError),
+            ):
+                return current
+            if isinstance(current, APIStatusError) and (
+                current.status_code == 429 or current.status_code >= 500
+            ):
+                return current
+            current = current.__cause__ or current.__context__
+        return None
 
     @staticmethod
     def _lean_history(history: list[dict]) -> list[dict]:
